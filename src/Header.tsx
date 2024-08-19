@@ -6,7 +6,7 @@ import {
   selectedAccount$,
   selectedExtension$,
   selectExtension,
-} from "./api/accounts"
+} from "./services/accounts"
 import { createSignal } from "@react-rxjs/utils"
 import { Portal } from "react-portal"
 import { twMerge } from "tailwind-merge"
