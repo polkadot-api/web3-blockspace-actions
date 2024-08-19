@@ -1,1 +1,7 @@
+export * from "./allChains"
+export type { ChainSpec } from "./chainspec"
 export * from "./polkadot"
+export * from "./polkadotAssetHub"
+export * from "./polkadotBridgeHub"
+export * from "./polkadotCollectives"
+export * from "./polkadotPeople"
