@@ -3,12 +3,12 @@ import { createClient } from "polkadot-api"
 import { getSmProvider } from "polkadot-api/sm-provider"
 import { smoldot } from "./client"
 
-export const polkadotSpec = import("polkadot-api/chains/polkadot")
-export const decodedPolkadotSpec = polkadotSpec.then((v) =>
+export const polkadotPeopleSpec = import("polkadot-api/chains/polkadot_people")
+export const decodedPolkadotPeopleSpec = polkadotPeopleSpec.then((v) =>
   JSON.parse(v.chainSpec),
 )
 
-const chain = polkadotSpec.then(smoldot.addChain)
+const chain = polkadotPeopleSpec.then(smoldot.addChain)
 const client = createClient(getSmProvider(chain))
 
-export const polkadotApi = client.getTypedApi(polkadot)
+export const polkadotPeopleApi = client.getTypedApi(polkadot)
