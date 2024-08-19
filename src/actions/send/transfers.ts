@@ -1,10 +1,10 @@
 import {
-  AllChainApis,
   ChainId,
   polkadotApi,
   polkadotAssetHubApi,
   polkadotBridgeHubApi,
   polkadotCollectivesApi,
+  polkadotPeopleApi,
 } from "@/api"
 import { assetHubTokenIds, SupportedTokens } from "@/services/balances"
 import {
@@ -30,9 +30,84 @@ type PredefinedTransfers = {
   [K in ChainId]: ChainPredefinedTransfers
 }
 
+const createChainMap = <T>(createValue: () => T): Record<ChainId, T> => ({
+  polkadot: createValue(),
+  polkadotAssetHub: createValue(),
+  polkadotBridgeHub: createValue(),
+  polkadotCollectives: createValue(),
+  polkadotPeople: createValue(),
+})
+
+export const predefinedTransfers: PredefinedTransfers = createChainMap(() =>
+  createChainMap(() => ({})),
+)
+
+// This object is filled with the configuration below
+type TransferFnParams = Parameters<
+  typeof polkadotApi.tx.Balances.transfer_keep_alive
+>
+type TeleportFnParams = Parameters<
+  typeof polkadotApi.tx.XcmPallet.limited_teleport_assets
+>
+type TransferAssetFnParams = Parameters<
+  typeof polkadotAssetHubApi.tx.Assets.transfer_keep_alive
+>
+type UnknownTransaction = Transaction<object, string, string, unknown>
+interface Chain {
+  id: ChainId
+  transfer: (...args: TransferFnParams) => UnknownTransaction
+  teleport: (...args: TeleportFnParams) => UnknownTransaction
+  assets?: { token: SupportedTokens; id: number }[]
+  transferAsset?: (...args: TransferAssetFnParams) => UnknownTransaction
+}
+interface Parachain extends Chain {
+  parachainId: number
+}
+interface RelayChain extends Chain {
+  parachains: Parachain[]
+}
+const chains: RelayChain[] = [
+  {
+    id: "polkadot",
+    transfer: polkadotApi.tx.Balances.transfer_keep_alive,
+    teleport: polkadotApi.tx.XcmPallet.teleport_assets,
+    parachains: [
+      {
+        id: "polkadotAssetHub",
+        parachainId: 1000,
+        transfer: polkadotAssetHubApi.tx.Balances.transfer_keep_alive,
+        teleport: polkadotAssetHubApi.tx.PolkadotXcm.teleport_assets,
+        assets: [
+          { token: "USDC", id: assetHubTokenIds.USDC },
+          { token: "USDT", id: assetHubTokenIds.USDT },
+        ],
+        transferAsset: polkadotAssetHubApi.tx.Assets.transfer_keep_alive,
+      },
+      {
+        id: "polkadotBridgeHub",
+        parachainId: 1002,
+        transfer: polkadotBridgeHubApi.tx.Balances.transfer_keep_alive,
+        teleport: polkadotBridgeHubApi.tx.PolkadotXcm.teleport_assets,
+      },
+      {
+        id: "polkadotCollectives",
+        parachainId: 1001,
+        transfer: polkadotCollectivesApi.tx.Balances.transfer_keep_alive,
+        teleport: polkadotCollectivesApi.tx.PolkadotXcm.teleport_assets,
+      },
+      {
+        id: "polkadotPeople",
+        parachainId: 1004,
+        transfer: polkadotPeopleApi.tx.Balances.transfer_keep_alive,
+        teleport: polkadotPeopleApi.tx.PolkadotXcm.teleport_assets,
+      },
+    ],
+  },
+]
+
 const nativeTokenTransfer =
-  (api: AllChainApis) => (dest: string, value: bigint) =>
-    api.tx.Balances.transfer_keep_alive({ dest: MultiAddress.Id(dest), value })
+  (transfer: Chain["transfer"]) => (dest: string, value: bigint) =>
+    transfer({ dest: MultiAddress.Id(dest), value })
 
 const nativeAsset = (parents: number, amount: bigint) =>
   XcmVersionedAssets.V4([
@@ -58,17 +133,10 @@ const destToBeneficiary = (dest: string) =>
 
 const encodeAccount = AccountId().enc
 
-type TeleportFnParams = Parameters<
-  typeof polkadotApi.tx.XcmPallet.limited_teleport_assets
->
 const nativeTokenToParachain =
-  <R>(
-    fn: (...args: TeleportFnParams) => R,
-    parachain: number,
-    parents: number,
-  ) =>
+  (teleport: Chain["teleport"], parachain: number, parents: number) =>
   (dest: string, value: bigint) =>
-    fn({
+    teleport({
       assets: nativeAsset(0, value),
       dest: XcmVersionedLocation.V4({
         parents,
@@ -79,51 +147,9 @@ const nativeTokenToParachain =
       weight_limit: XcmV3WeightLimit.Unlimited(),
     })
 
-const ParachainIds = {
-  polkadotAssetHub: 1000,
-  polkadotBridgeHub: 1002,
-  polkadotCollectives: 1001,
-  polkadotPeople: 1004,
-}
-
-const polkadot: ChainPredefinedTransfers = {
-  polkadot: {
-    DOT: nativeTokenTransfer(polkadotApi),
-  },
-  polkadotAssetHub: {
-    DOT: nativeTokenToParachain(
-      polkadotApi.tx.XcmPallet.limited_teleport_assets,
-      ParachainIds.polkadotAssetHub,
-      0,
-    ),
-  },
-  polkadotBridgeHub: {
-    DOT: nativeTokenToParachain(
-      polkadotApi.tx.XcmPallet.limited_teleport_assets,
-      ParachainIds.polkadotBridgeHub,
-      0,
-    ),
-  },
-  polkadotCollectives: {
-    DOT: nativeTokenToParachain(
-      polkadotApi.tx.XcmPallet.limited_teleport_assets,
-      ParachainIds.polkadotCollectives,
-      0,
-    ),
-  },
-  polkadotPeople: {
-    DOT: nativeTokenToParachain(
-      polkadotApi.tx.XcmPallet.limited_teleport_assets,
-      ParachainIds.polkadotPeople,
-      0,
-    ),
-  },
-}
-
 const nativeTokenToRelayChain =
-  <R>(fn: (...args: TeleportFnParams) => R) =>
-  (dest: string, value: bigint) =>
-    fn({
+  (teleport: Chain["teleport"]) => (dest: string, value: bigint) =>
+    teleport({
       assets: nativeAsset(0, value),
       dest: XcmVersionedLocation.V4({
         parents: 1,
@@ -134,150 +160,50 @@ const nativeTokenToRelayChain =
       weight_limit: XcmV3WeightLimit.Unlimited(),
     })
 
-const polkadotAssetHub: ChainPredefinedTransfers = {
-  polkadot: {
-    DOT: nativeTokenToRelayChain(
-      polkadotAssetHubApi.tx.PolkadotXcm.limited_teleport_assets,
-    ),
-  },
-  polkadotAssetHub: {
-    DOT: nativeTokenTransfer(polkadotAssetHubApi),
-    USDC: (dest, amount) =>
-      polkadotAssetHubApi.tx.Assets.transfer_keep_alive({
-        id: assetHubTokenIds.USDC,
-        target: MultiAddress.Id(dest),
-        amount,
-      }),
-    USDT: (dest, amount) =>
-      polkadotAssetHubApi.tx.Assets.transfer_keep_alive({
-        id: assetHubTokenIds.USDT,
-        target: MultiAddress.Id(dest),
-        amount,
-      }),
-  },
-  polkadotBridgeHub: {
-    DOT: nativeTokenToParachain(
-      polkadotAssetHubApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotBridgeHub,
-      1,
-    ),
-  },
-  polkadotCollectives: {
-    DOT: nativeTokenToParachain(
-      polkadotAssetHubApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotCollectives,
-      1,
-    ),
-  },
-  polkadotPeople: {
-    DOT: nativeTokenToParachain(
-      polkadotAssetHubApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotPeople,
-      1,
-    ),
-  },
-}
+// At the moment assuming there are no bridges between chains.
+// And assuming nativeToken = DOT
+chains.forEach((chain) => {
+  const nativeToken: SupportedTokens = "DOT"
 
-const polkadotBridgeHub: ChainPredefinedTransfers = {
-  polkadot: {
-    DOT: nativeTokenToRelayChain(
-      polkadotBridgeHubApi.tx.PolkadotXcm.limited_teleport_assets,
-    ),
-  },
-  polkadotAssetHub: {
-    DOT: nativeTokenToParachain(
-      polkadotBridgeHubApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotAssetHub,
-      1,
-    ),
-  },
-  polkadotBridgeHub: {
-    DOT: nativeTokenTransfer(polkadotBridgeHubApi),
-  },
-  polkadotCollectives: {
-    DOT: nativeTokenToParachain(
-      polkadotBridgeHubApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotCollectives,
-      1,
-    ),
-  },
-  polkadotPeople: {
-    DOT: nativeTokenToParachain(
-      polkadotBridgeHubApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotPeople,
-      1,
-    ),
-  },
-}
+  // relay <-> relay
+  predefinedTransfers[chain.id][chain.id][nativeToken] = nativeTokenTransfer(
+    chain.transfer,
+  )
+  chain.parachains.forEach((parachain) => {
+    // relay <-> parachain
+    predefinedTransfers[chain.id][parachain.id][nativeToken] =
+      nativeTokenToParachain(chain.teleport, parachain.parachainId, 0)
+    predefinedTransfers[parachain.id][chain.id][nativeToken] =
+      nativeTokenToRelayChain(parachain.teleport)
 
-const polkadotCollectives: ChainPredefinedTransfers = {
-  polkadot: {
-    DOT: nativeTokenToRelayChain(
-      polkadotCollectivesApi.tx.PolkadotXcm.limited_teleport_assets,
-    ),
-  },
-  polkadotAssetHub: {
-    DOT: nativeTokenToParachain(
-      polkadotCollectivesApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotAssetHub,
-      1,
-    ),
-  },
-  polkadotBridgeHub: {
-    DOT: nativeTokenToParachain(
-      polkadotCollectivesApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotBridgeHub,
-      1,
-    ),
-  },
-  polkadotCollectives: {
-    DOT: nativeTokenTransfer(polkadotCollectivesApi),
-  },
-  polkadotPeople: {
-    DOT: nativeTokenToParachain(
-      polkadotCollectivesApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotPeople,
-      1,
-    ),
-  },
-}
+    // parachain <-> parachain
+    const parachainAssets = parachain.assets ?? []
+    chain.parachains.forEach((destParachain) => {
+      predefinedTransfers[parachain.id][destParachain.id][nativeToken] =
+        parachain.id === destParachain.id
+          ? nativeTokenTransfer(parachain.transfer)
+          : nativeTokenToParachain(
+              parachain.teleport,
+              destParachain.parachainId,
+              1,
+            )
 
-const polkadotPeople: ChainPredefinedTransfers = {
-  polkadot: {
-    DOT: nativeTokenToRelayChain(
-      polkadotCollectivesApi.tx.PolkadotXcm.limited_teleport_assets,
-    ),
-  },
-  polkadotAssetHub: {
-    DOT: nativeTokenToParachain(
-      polkadotCollectivesApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotAssetHub,
-      1,
-    ),
-  },
-  polkadotBridgeHub: {
-    DOT: nativeTokenToParachain(
-      polkadotCollectivesApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotBridgeHub,
-      1,
-    ),
-  },
-  polkadotCollectives: {
-    DOT: nativeTokenToParachain(
-      polkadotCollectivesApi.tx.PolkadotXcm.limited_teleport_assets,
-      ParachainIds.polkadotCollectives,
-      1,
-    ),
-  },
-  polkadotPeople: {
-    DOT: nativeTokenTransfer(polkadotCollectivesApi),
-  },
-}
-
-export const predefinedTransfers: PredefinedTransfers = {
-  polkadot,
-  polkadotAssetHub,
-  polkadotBridgeHub,
-  polkadotCollectives,
-  polkadotPeople,
-}
+      if (!destParachain.assets || !parachain.transferAsset) return
+      parachainAssets
+        .filter((asset) =>
+          destParachain.assets!.find((a) => a.token === asset.token),
+        )
+        .forEach((asset) => {
+          predefinedTransfers[parachain.id][destParachain.id][asset.token] = (
+            dest,
+            amount,
+          ) =>
+            parachain.transferAsset!({
+              id: asset.id,
+              target: MultiAddress.Id(dest),
+              amount,
+            })
+        })
+    })
+  })
+})
