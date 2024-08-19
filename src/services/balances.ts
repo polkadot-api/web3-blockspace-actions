@@ -57,10 +57,11 @@ const polkadotBalance = (token: SupportedTokens, address: string) =>
     ? getNativeBalance(polkadotApi, address)
     : Promise.resolve(null)
 
-const assetHubTokenIds = {
+export const assetHubTokenIds = {
   USDC: 1_337,
   USDT: 1_984,
 } satisfies Record<Exclude<SupportedTokens, "DOT">, number>
+
 const assetHubBalance = async (token: SupportedTokens, address: string) => {
   if (token === "DOT") {
     return getNativeBalance(polkadotAssetHubApi, address)
