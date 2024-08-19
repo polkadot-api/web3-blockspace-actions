@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import { Route, Routes } from "react-router-dom"
-import { Void } from "./actions"
+import { Send, Void } from "./actions"
 import { Header } from "./Header"
 
 function App() {
@@ -10,6 +10,7 @@ function App() {
       <Suspense fallback="Loading">
         <Routes>
           <Route path="/" element={<Void />} />
+          <Route path="/send/*" element={<Send />} />
           <Route path="*" element="Not found" />
         </Routes>
       </Suspense>
