@@ -1,5 +1,6 @@
 import {
-  allChains,
+  AllChainApis,
+  ChainId,
   polkadotApi,
   polkadotAssetHubApi,
   polkadotBridgeHubApi,
@@ -21,7 +22,7 @@ export const findBalances$ = (token: SupportedTokens, address: string) =>
   ]).pipe(map((v) => v.filter(isNotNil)))
 
 const getBalance$ = (
-  chain: keyof typeof allChains,
+  chain: ChainId,
   balancePromise: Promise<{
     transferable: bigint
     existentialDeposit: bigint
@@ -40,10 +41,7 @@ const getBalance$ = (
     ),
   )
 
-const getNativeBalance = async (
-  api: (typeof allChains)[keyof typeof allChains]["api"],
-  address: string,
-) => {
+const getNativeBalance = async (api: AllChainApis, address: string) => {
   const [account, ed] = await Promise.all([
     api.query.System.Account.getValue(address),
     api.constants.Balances.ExistentialDeposit(),
