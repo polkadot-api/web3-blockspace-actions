@@ -1,4 +1,4 @@
-import { polkadot } from "@polkadot-api/descriptors"
+import { polkadot_collectives } from "@polkadot-api/descriptors"
 import { createClient } from "polkadot-api"
 import { getSmProvider } from "polkadot-api/sm-provider"
 import { smoldot } from "./client"
@@ -13,4 +13,4 @@ export const decodedPolkadotCollectivesSpec = polkadotCollectivesSpec.then(
 const chain = polkadotCollectivesSpec.then(smoldot.addChain)
 const client = createClient(getSmProvider(chain))
 
-export const polkadotCollectivesApi = client.getTypedApi(polkadot)
+export const polkadotCollectivesApi = client.getTypedApi(polkadot_collectives)
