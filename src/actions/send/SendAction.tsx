@@ -6,17 +6,21 @@ import {
   transferAmount$,
   token$,
 } from "./send"
-import { formatCurrency } from "../utils/format-currency.ts"
+import { formatCurrency } from "../../utils/format-currency.ts"
+import Void from "../void.tsx"
 
 recipientChainData$.subscribe()
 transferAmount$.subscribe()
 recipient$.subscribe()
+token$.subscribe()
 
 export const SendAction = () => {
   const chainData = useStateObservable(recipientChainData$)
   const transferAmount = useStateObservable(transferAmount$)
   const recipient = useStateObservable(recipient$)
   const token = useStateObservable(token$)
+
+  if (!chainData || !transferAmount || !recipient) return <Void />
 
   return (
     <div className="flex flex-col text-center items-center ">
@@ -31,7 +35,7 @@ export const SendAction = () => {
           </div>
         </div>
         <div className="flex flex-row justify-between gap-2">
-          Chain: <div className="text-right">{chainData}</div>
+          Chain: <div className="text-right">{chainData?.name}</div>
         </div>
         <div className="flex flex-row justify-between">
           Recipient:

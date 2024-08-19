@@ -1,7 +1,9 @@
 import { routeMatch$ } from "@/router"
-import { map } from "rxjs"
+import { map, switchMap, defer, combineLatest } from "rxjs"
 import { state } from "@react-rxjs/core"
-import { parseCurrency } from "../utils/currency"
+import { parseCurrency } from "@/utils/currency"
+import { allChains } from "@/api/allChains"
+import { ChainSpec } from "@/api/chainspec"
 
 const PATTERN = "/send/:chain/:account"
 
@@ -47,20 +49,28 @@ export const transferAmount$ = state(
   ),
   null,
 )
-export const token$ = state(
-  routeMatch$(PATTERN).pipe(
-    map((routeData) => {
-      const params = new URLSearchParams(routeData?.params.account)
-      return params.get("token")
-    }),
-  ),
-  null,
-)
 
 export const recipientChainData$ = state(
   routeMatch$(PATTERN).pipe(
-    map((routeData) => {
-      return routeData?.params.chain
+    switchMap((routeData) => {
+      const myKey = routeData?.params.chain
+      if (!myKey || !(myKey in allChains)) return [null]
+
+      return defer(() =>
+        allChains[myKey as keyof typeof allChains].chainSpec.then(
+          (spec) => spec as ChainSpec,
+        ),
+      )
     }),
   ),
+)
+
+export const token$ = state(
+  combineLatest([routeMatch$(PATTERN), recipientChainData$]).pipe(
+    map(([routeData, chainData]) => {
+      const params = new URLSearchParams(routeData?.params.account)
+      return params.get("token") ?? chainData?.properties.tokenSymbol ?? null
+    }),
+  ),
+  null,
 )
