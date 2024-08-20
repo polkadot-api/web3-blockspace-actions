@@ -1,8 +1,9 @@
-import { allChains } from "@/api/allChains"
+import { allChains, ChainId } from "@/api/allChains"
 import { ChainSpec } from "@/api/chainspec"
 import { routeMatch$ } from "@/router"
 import { selectedAccount$ } from "@/services/accounts"
 import {
+  Chain,
   findBalances$,
   isSupportedToken,
   SupportedTokens,
@@ -15,12 +16,13 @@ import {
   combineLatest,
   defer,
   map,
+  materialize,
   of,
+  scan,
   switchMap,
-  withLatestFrom,
   tap,
+  withLatestFrom,
 } from "rxjs"
-import { ChainId } from "@/api/allChains"
 import { predefinedTransfers } from "./transfers"
 
 const PATTERN = "/send/:chain/:account"
@@ -71,7 +73,7 @@ export const transferAmount$ = state(
 )
 
 const recipientChainId$ = routeMatch$(PATTERN).pipe(
-  map((routeData) => routeData?.params.chain),
+  map((routeData) => routeData?.params.chain as ChainId | undefined),
 )
 
 export const recipientChainData$ = state(
@@ -103,22 +105,56 @@ export const token$ = state(
 )
 
 export const balances$ = state(
-  combineLatest([token$, selectedAccount$]).pipe(
-    switchMap(([token, account]) => {
-      if (!token || !account || !isSupportedToken(token)) return of([])
+  combineLatest([token$, selectedAccount$, recipientChainId$]).pipe(
+    switchMap(([token, account, chainId]) => {
+      if (!token || !account || !chainId || !isSupportedToken(token))
+        return of([])
 
-      return findBalances$(token as SupportedTokens, account.address)
+      // balances.filter((b) => predefinedTransfers[b.chain.id][chainId][token!]),
+      return findBalances$(token as SupportedTokens, account.address).pipe(
+        materialize(),
+        scan(
+          (state, evt) => {
+            if (evt.kind === "E") {
+              throw evt.error
+            }
+            if (evt.kind === "C") {
+              return state ?? []
+            }
+            const result = evt.value.filter(
+              (b) => predefinedTransfers[b.chain.id][chainId][token!],
+            )
+            // More might be coming
+            if (!result.length) return null
+            return result
+          },
+          null as
+            | {
+                transferable: bigint
+                chain: Chain
+              }[]
+            | null,
+        ),
+      )
     }),
   ),
+  null,
 )
 
 export const accountsWithSufficientBalance$ = state(
   combineLatest([balances$, transferAmount$]).pipe(
     map(([balances, amount]) => {
-      if (amount === null) return []
+      if (balances === null) return null
+      if (amount === null) {
+        console.warn(
+          "Amount not set, can't calculate accounts with sufficent balance",
+        )
+        return []
+      }
       return balances.filter((balance) => balance.transferable > amount)
     }),
   ),
+  null,
 )
 
 export const [onChangeSenderChainId$, changeSenderChainId$] =

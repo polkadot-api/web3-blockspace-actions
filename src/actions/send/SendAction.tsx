@@ -83,10 +83,15 @@ const ChainSelector: React.FC<{ decimals: number; token: SupportedTokens }> = ({
   const balances = useStateObservable(accountsWithSufficientBalance$)
   const selectedChain = useStateObservable(senderChainId$)
 
+  if (balances == null) {
+    return <div className="max-w-[300px]">Loading balances...</div>
+  }
+
   if (balances.length === 0)
     return (
       <div className="max-w-[300px]">
-        This account does not have sufficient balance for this transfer.
+        The selected address doesn't have suitable accounts with sufficient
+        balance.
       </div>
     )
   return (
