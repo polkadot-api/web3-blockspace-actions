@@ -31,7 +31,7 @@ export const tokenDecimals: Record<SupportedTokens, number> = {
 type GetAccountResult = ReturnType<
   typeof polkadotApi.query.System.Account.getValue
 >
-interface Chain {
+export interface Chain {
   id: ChainId
   nativeToken: SupportedTokens
   getSystemAccount: (address: string) => GetAccountResult
