@@ -5,18 +5,8 @@ import {
   SUSPENSE,
   useStateObservable,
 } from "@react-rxjs/core"
-import { routeChain$, delegateAccount$ } from "./delegate"
-import {
-  combineLatest,
-  concat,
-  defer,
-  EMPTY,
-  from,
-  map,
-  startWith,
-  switchMap,
-  take,
-} from "rxjs"
+import { routeChain$, routeDelegateAccount$ } from "./delegate"
+import { combineLatest, concat, defer, EMPTY, from, map, take } from "rxjs"
 import { createSignal, switchMapSuspended } from "@react-rxjs/utils"
 import { getOptimalAmount, getTracks } from "@/api/delegation"
 import { SS58String } from "polkadot-api"
@@ -32,7 +22,7 @@ const optimalAmount$ = state((account: SS58String) =>
   from(getOptimalAmount(account)),
 )
 const amount$ = state(
-  combineLatest(routeChain$, delegateAccount$, selectedAccount$).pipe(
+  combineLatest([routeChain$, routeDelegateAccount$, selectedAccount$]).pipe(
     switchMapSuspended(([, , account]) => {
       if (!account) return EMPTY
       return concat(
@@ -83,7 +73,7 @@ const [convictionInput$, onConvictionInputChanges] = createSignal<
 >()
 const conviction$: StateObservable<0 | 1 | 2 | 3 | 4 | 5 | 6 | SUSPENSE> =
   state(
-    combineLatest(routeChain$, delegateAccount$, selectedAccount$).pipe(
+    combineLatest([routeChain$, routeDelegateAccount$, selectedAccount$]).pipe(
       switchMapSuspended(([, , account]) => {
         if (!account) return EMPTY
         return concat(
@@ -133,7 +123,7 @@ const SelectTracks: React.FC = () => {
 
 export const DelegateAction = () => {
   const chainData = useStateObservable(routeChain$)
-  const delegateAccount = useStateObservable(delegateAccount$)
+  const delegateAccount = useStateObservable(routeDelegateAccount$)
   const [selectedFrameworks, setSelectedFrameworks] = useState<string[]>([
     "react",
     "angular",

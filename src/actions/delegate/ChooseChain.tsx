@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom"
-
-const SUPPORTED_CHAINS = ["polkadot", "kusama"]
+import { SUPPORTED_CHAINS } from "./utils"
 
 export const ChooseChain = () => {
   return (
