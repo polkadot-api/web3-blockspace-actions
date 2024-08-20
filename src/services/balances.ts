@@ -9,6 +9,11 @@ import {
 import { combineLatest, distinctUntilChanged, from, map, startWith } from "rxjs"
 
 export type SupportedTokens = "DOT" | "USDT" | "USDC"
+export const tokenDecimals: Record<SupportedTokens, number> = {
+  DOT: 10,
+  USDT: 6,
+  USDC: 6,
+}
 
 // Assuming DOT is the native token
 type GetAccountResult = ReturnType<

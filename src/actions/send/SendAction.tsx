@@ -14,7 +14,7 @@ transferAmount$.subscribe()
 recipient$.subscribe()
 token$.subscribe()
 
-export const SendAction = () => {
+export default function SendAction() {
   const chainData = useStateObservable(recipientChainData$)
   const transferAmount = useStateObservable(transferAmount$)
   const recipient = useStateObservable(recipient$)
