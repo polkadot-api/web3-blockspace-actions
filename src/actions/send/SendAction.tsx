@@ -13,6 +13,7 @@ import {
   feeEstimation$,
   recipient$,
   recipientChainData$,
+  selectedRoute$,
   senderChainId$,
   token$,
   transferAmount$,
@@ -71,7 +72,7 @@ export default function SendAction() {
         <div className="font-semibold mt-2">Select a chain</div>
         <ChainSelector decimals={decimals} token={token} />
       </div>
-      <Submit />
+      <RouteDisplay />
     </div>
   )
 }
@@ -155,6 +156,34 @@ const Fee: React.FC<{
       {formatCurrencyWithSymbol(feeEstimation, decimals, token, {
         nDecimals: 4,
       })}
+    </div>
+  )
+}
+
+const RouteDisplay = () => {
+  const route = useStateObservable(selectedRoute$)
+
+  // TODO placeholder
+  if (!route) return <Submit />
+
+  if (route.length === 1) {
+    return <Submit />
+  }
+
+  return (
+    <div>
+      <p>Sending from the selected chain requires multiple steps.</p>
+      <p>Proceed one-by-one:</p>
+      <ol>
+        {route.map((r, i) => (
+          <li key={i} className="p-2">
+            <h3 className="font-bold">
+              {r.from} ➡️ {r.to}
+            </h3>
+            <Submit />
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }
