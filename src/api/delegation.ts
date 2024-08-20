@@ -20,6 +20,41 @@ interface Delegating {
   conviction: VotingConviction
 }
 
+export const getTimeLock = async (
+  conviction: 0 | 1 | 2 | 3 | 4 | 5 | 6,
+): Promise<string> => {
+  if (conviction === 0) return "No lock"
+  const [blockTimeSeconds, lockedBlocks] = await Promise.all([
+    paseoApi.constants.Babe.ExpectedBlockTime(),
+    paseoApi.constants.ConvictionVoting.VoteLockingPeriod(),
+  ]).then(([milis, locked]) => [Number(milis / 1000n), locked])
+  console.log(lockedBlocks)
+  const hoursToUnlock = Math.ceil(
+    (blockTimeSeconds * lockedBlocks * 2 ** (conviction - 1)) / 60 / 60,
+  )
+  const hoursToPrint = hoursToUnlock % 24
+  const daysToPrint = ((hoursToUnlock - hoursToPrint) / 24) % 7
+  const weeksToPrint =
+    (hoursToUnlock - hoursToPrint - daysToPrint * 24) / 24 / 7
+  let returnStr = ""
+  let started = false
+  if (weeksToPrint) {
+    started = true
+    returnStr += `${weeksToPrint} weeks`
+  }
+  if (daysToPrint) {
+    if (started) returnStr += `, `
+    else started = true
+    returnStr += `${daysToPrint} days`
+  }
+  if (hoursToPrint) {
+    if (started) returnStr += `, `
+    else started = true
+    returnStr += `${hoursToPrint} hours`
+  }
+  return returnStr
+}
+
 export const getTracks = async (): Promise<Record<number, string>> =>
   Object.fromEntries(
     (await api.constants.Referenda.Tracks()).map(([trackId, { name }]) => [
