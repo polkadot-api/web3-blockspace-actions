@@ -7,6 +7,7 @@ import { RadioGroup, Field, Radio, Label } from "@headlessui/react"
 import {
   accountsWithSufficientBalance$,
   changeSenderChainId$,
+  feeEstimation$,
   recipient$,
   recipientChainData$,
   senderChainId$,
@@ -101,11 +102,32 @@ const ChainSelector: React.FC = () => {
               <span className="invisible size-2 rounded-full bg-white group-data-[checked]:visible" />
             </Radio>
             <Label>
-              {balance.chain.id}: {formatCurrency(balance.transferable, 10)}
+              <div className="flex flex-row gap-5 items-start pt-5">
+                <h3 className="font-semibold">{balance.chain.id}</h3>
+                <div className="flex flex-col">
+                  <div className="flex flex-row justify-between">
+                    <div>Balance: </div>
+                    <div className="text-right ml-2">
+                      {formatCurrency(balance.transferable, 10, {
+                        nDecimals: 4,
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex flex-row justify-between">
+                    <div className="mr-2">Estimated fee:</div>{" "}
+                    <Fee chainId={balance.chain.id} />
+                  </div>
+                </div>
+              </div>
             </Label>
           </Field>
         ))}
       </RadioGroup>
     </>
   )
+}
+
+const Fee: React.FC<{ chainId: ChainId }> = ({ chainId }) => {
+  const feeEstimation = useStateObservable(feeEstimation$(chainId))
+  return <div>{formatCurrency(feeEstimation, 10, { nDecimals: 4 })}</div>
 }

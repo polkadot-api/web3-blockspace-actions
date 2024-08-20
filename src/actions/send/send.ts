@@ -13,6 +13,7 @@ import { createSignal } from "@react-rxjs/utils"
 import { combineLatest, defer, map, of, switchMap, withLatestFrom } from "rxjs"
 import { ChainId } from "@/api/allChains"
 import { predefinedTransfers } from "./transfers"
+import { SS58String } from "polkadot-api"
 
 const PATTERN = "/send/:chain/:account"
 
@@ -112,45 +113,85 @@ export const senderChainId$ = state(onChangeSenderChainId$, "")
 
 export const [onSubmitted$, submitTransfer$] = createSignal()
 
-export const transferStatus$ = state(
-  onSubmitted$.pipe(
-    withLatestFrom(
-      recipient$,
-      transferAmount$,
+export const feeEstimation$ = state(
+  (senderChain: ChainId) =>
+    combineLatest([
       recipientChainData$,
       token$,
-      senderChainId$,
+      recipient$,
+      transferAmount$,
       selectedAccount$,
-    ),
-    switchMap(
-      ([
-        ,
-        recipient,
-        transferAmount,
-        recipientChain,
-        token,
-        senderChain,
-        selectedAccount,
-      ]) => {
-        if (
-          !recipientChain ||
-          !recipient ||
-          !token ||
-          !transferAmount ||
-          !selectedAccount
-        )
-          return [null]
+    ]).pipe(
+      switchMap(
+        ([
+          recipientChain,
+          token,
+          recipient,
+          transferAmount,
+          selectedAccount,
+        ]) => {
+          if (
+            !recipientChain ||
+            !token ||
+            !recipient ||
+            !transferAmount ||
+            !selectedAccount
+          )
+            return [null]
 
-        const tx =
-          predefinedTransfers[senderChain as ChainId][
-            recipientChain.id as ChainId
-          ][token.toUpperCase() as SupportedTokens]
+          const tx =
+            predefinedTransfers[senderChain as ChainId][
+              recipientChain.id as ChainId
+            ][token.toUpperCase() as SupportedTokens] ?? null
 
-        if (!tx) return of(null)
-        return tx(recipient, transferAmount).signSubmitAndWatch(
-          selectedAccount.polkadotSigner,
-        )
-      },
+          return tx
+            ? defer(() =>
+                tx(recipient, transferAmount).getEstimatedFees(
+                  selectedAccount.address,
+                ),
+              )
+            : [null]
+        },
+      ),
     ),
+  null,
+)
+
+export const tx$ = state(
+  combineLatest([
+    recipientChainData$,
+    senderChainId$,
+    token$,
+    recipient$,
+    transferAmount$,
+  ]).pipe(
+    map(([recipientChain, senderChain, token, recipient, transferAmount]) => {
+      if (
+        !recipientChain ||
+        !senderChain ||
+        !token ||
+        !recipient ||
+        !transferAmount
+      )
+        return null
+
+      const tx =
+        predefinedTransfers[senderChain as ChainId][
+          recipientChain.id as ChainId
+        ][token.toUpperCase() as SupportedTokens] ?? null
+
+      return tx ? tx(recipient, transferAmount) : null
+    }),
+  ),
+)
+
+export const transferStatus$ = state(
+  onSubmitted$.pipe(
+    withLatestFrom(tx$, selectedAccount$),
+    switchMap(([, tx, selectedAccount]) => {
+      if (!tx || !selectedAccount) return [null]
+
+      return tx.signSubmitAndWatch(selectedAccount.polkadotSigner)
+    }),
   ),
 )
