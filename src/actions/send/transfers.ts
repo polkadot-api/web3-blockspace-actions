@@ -21,12 +21,13 @@ import {
 } from "@polkadot-api/descriptors"
 import { AccountId, Binary, Enum, Transaction } from "polkadot-api"
 
+type TxFn = (
+  dest: string,
+  value: bigint,
+) => Transaction<object, string, string, unknown>
 type ChainPredefinedTransfers = {
   [K in ChainId]: {
-    [K in SupportedTokens]?: (
-      dest: string,
-      value: bigint,
-    ) => Transaction<object, string, string, unknown>
+    [K in SupportedTokens]?: TxFn
   }
 }
 
@@ -67,6 +68,10 @@ interface Chain {
   teleport: (...args: TeleportFnParams) => UnknownTransaction
   assets?: { token: SupportedTokens; id: number }[]
   transferAsset?: (...args: TransferAssetFnParams) => UnknownTransaction
+  bridges?: Array<{
+    chain: ChainId
+    parachain?: ChainId
+  }>
 }
 interface Parachain extends Chain {
   parachainId: number
@@ -124,6 +129,12 @@ const chains: RelayChain[] = [
         parachainId: 1000,
         transfer: rococoAssetHubApi.tx.Balances.transfer_keep_alive,
         teleport: rococoAssetHubApi.tx.PolkadotXcm.teleport_assets,
+        bridges: [
+          {
+            chain: "westend",
+            parachain: "westendAssetHub",
+          },
+        ],
       },
     ],
   },
@@ -138,6 +149,12 @@ const chains: RelayChain[] = [
         parachainId: 1000,
         transfer: westendAssetHubApi.tx.Balances.transfer_keep_alive,
         teleport: westendAssetHubApi.tx.PolkadotXcm.teleport_assets,
+        bridges: [
+          {
+            chain: "rococo",
+            parachain: "rococoAssetHub",
+          },
+        ],
       },
     ],
   },
@@ -244,3 +261,82 @@ chains.forEach((chain) => {
     })
   })
 })
+
+export type Route = Array<{
+  from: ChainId
+  to: ChainId
+  tx: TxFn
+}>
+type Exploring = {
+  position: ChainId
+  route: Route
+  visited: Set<ChainId>
+}
+export function findRoute(
+  from: ChainId,
+  to: ChainId,
+  token: SupportedTokens,
+): Route | null {
+  // Direct shortcuts
+  if (
+    !(token in predefinedTransfers[from][from]) ||
+    !(token in predefinedTransfers[to][to])
+  )
+    return null
+  if (from === to) {
+    return [
+      {
+        from,
+        to,
+        tx: predefinedTransfers[from][to][token]!,
+      },
+    ]
+  }
+
+  let exploring: Array<Exploring> = [
+    {
+      position: from,
+      route: [],
+      visited: new Set(),
+    },
+  ]
+
+  // BFS to find the shortest amount of steps
+  while (exploring.length) {
+    const newExploring: Array<Exploring> = []
+
+    for (const exp of exploring) {
+      if (exp.position === to) {
+        return exp.route
+      }
+      const newVisited = new Set(exp.visited)
+      newVisited.add(exp.position)
+
+      const destinations = Object.keys(predefinedTransfers[exp.position])
+        .map((dest) => dest as ChainId)
+        .filter(
+          (dest) =>
+            !exp.visited.has(dest) &&
+            token in predefinedTransfers[exp.position][dest],
+        )
+      destinations.forEach((dest) =>
+        newExploring.push({
+          position: dest,
+          route: [
+            ...exp.route,
+            {
+              from: exp.position,
+              to: dest,
+              tx: predefinedTransfers[exp.position][dest][token]!,
+            },
+          ],
+          visited: newVisited,
+        }),
+      )
+    }
+
+    exploring = newExploring
+  }
+
+  return null
+}
