@@ -1,3 +1,4 @@
+import { SupportedTokens } from "@/services/balances"
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -27,6 +28,16 @@ const defaultOptions: FormatCurrencyOptions = {
   nDecimals: Infinity,
   padToDecimals: true,
   decimalSeparator: decimalSeparatorDisplay,
+}
+
+export const formatCurrencyWithSymbol = (
+  value: bigint | null,
+  precision: number,
+  token: SupportedTokens,
+  options: Partial<FormatCurrencyOptions> = {},
+) => {
+  const amt = formatCurrency(value, precision, options)
+  return amt == "" ? amt : amt + " " + token
 }
 
 export const formatCurrency = (

@@ -1,9 +1,12 @@
 import { AccountSelector } from "@/AccountSelector.tsx"
+import { ChainId } from "@/api/allChains.ts"
+import { SupportedTokens, tokenDecimals } from "@/services/balances.ts"
 import { truncateAddress } from "@/utils/address.ts"
+import { Field, Label, Radio, RadioGroup } from "@headlessui/react"
 import { state, useStateObservable } from "@react-rxjs/core"
 import { merge } from "rxjs"
-import { formatCurrency } from "../../utils/format-currency.ts"
-import { RadioGroup, Field, Radio, Label } from "@headlessui/react"
+import { formatCurrencyWithSymbol } from "../../utils/format-currency.ts"
+
 import {
   accountsWithSufficientBalance$,
   changeSenderChainId$,
@@ -11,14 +14,12 @@ import {
   recipient$,
   recipientChainData$,
   senderChainId$,
-  submitTransfer$,
   token$,
   transferAmount$,
-  transferStatus$,
 } from "./send"
-import { ChainId } from "@/api/allChains.ts"
+import Submit from "./Submit"
 
-const subscriptions = state(
+state(
   merge(
     accountsWithSufficientBalance$,
     recipient$,
@@ -26,7 +27,6 @@ const subscriptions = state(
     senderChainId$,
     token$,
     transferAmount$,
-    transferStatus$,
   ),
 ).subscribe()
 
@@ -41,6 +41,8 @@ export default function SendAction() {
   if (!recipient) return "No valid recipient"
   if (!token) return "No valid token"
 
+  const decimals = tokenDecimals[token as SupportedTokens]
+
   return (
     <div className="flex flex-col text-center items-center ">
       <h1 className="text-lg my-5 font-semibold">Send Tokens</h1>
@@ -49,8 +51,7 @@ export default function SendAction() {
         <div className="flex flex-row justify-between">
           Amount:{" "}
           <div className="text-right">
-            {formatCurrency(transferAmount, 10)}
-            {token}
+            {formatCurrencyWithSymbol(transferAmount, decimals, token)}
           </div>
         </div>
         <div className="flex flex-row justify-between gap-2">
@@ -67,25 +68,27 @@ export default function SendAction() {
           Account:
           <AccountSelector />
         </div>
-        <div className="font-semibold">Select a chain</div>
-        <ChainSelector />
+        <div className="font-semibold mt-2">Select a chain</div>
+        <ChainSelector decimals={decimals} token={token} />
       </div>
-      <button
-        className="rounded bg-pink-500 p-2 text-white"
-        onClick={() => submitTransfer$()}
-      >
-        Send Transaction
-      </button>
+      <Submit />
     </div>
   )
 }
 
-const ChainSelector: React.FC = () => {
+const ChainSelector: React.FC<{ decimals: number; token: SupportedTokens }> = ({
+  decimals,
+  token,
+}) => {
   const balances = useStateObservable(accountsWithSufficientBalance$)
   const selectedChain = useStateObservable(senderChainId$)
 
   if (balances.length === 0)
-    return "This account does not have sufficient balance for this transfer."
+    return (
+      <div className="max-w-[300px]">
+        This account does not have sufficient balance for this transfer.
+      </div>
+    )
   return (
     <>
       <RadioGroup
@@ -108,14 +111,23 @@ const ChainSelector: React.FC = () => {
                   <div className="flex flex-row justify-between">
                     <div>Balance: </div>
                     <div className="text-right ml-2">
-                      {formatCurrency(balance.transferable, 10, {
-                        nDecimals: 4,
-                      })}
+                      {formatCurrencyWithSymbol(
+                        balance.transferable,
+                        decimals,
+                        token,
+                        {
+                          nDecimals: 4,
+                        },
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-row justify-between">
                     <div className="mr-2">Estimated fee:</div>{" "}
-                    <Fee chainId={balance.chain.id} />
+                    <Fee
+                      chainId={balance.chain.id}
+                      decimals={decimals}
+                      token={token}
+                    />
                   </div>
                 </div>
               </div>
@@ -127,7 +139,17 @@ const ChainSelector: React.FC = () => {
   )
 }
 
-const Fee: React.FC<{ chainId: ChainId }> = ({ chainId }) => {
+const Fee: React.FC<{
+  chainId: ChainId
+  decimals: number
+  token: SupportedTokens
+}> = ({ chainId, decimals, token }) => {
   const feeEstimation = useStateObservable(feeEstimation$(chainId))
-  return <div>{formatCurrency(feeEstimation, 10, { nDecimals: 4 })}</div>
+  return (
+    <div>
+      {formatCurrencyWithSymbol(feeEstimation, decimals, token, {
+        nDecimals: 4,
+      })}
+    </div>
+  )
 }

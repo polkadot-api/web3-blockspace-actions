@@ -6,19 +6,24 @@ import {
   findBalances$,
   isSupportedToken,
   SupportedTokens,
+  tokenDecimals,
 } from "@/services/balances.ts"
 import { parseCurrency } from "@/utils/currency"
 import { state } from "@react-rxjs/core"
 import { createSignal } from "@react-rxjs/utils"
-import { combineLatest, defer, map, of, switchMap, withLatestFrom } from "rxjs"
+import {
+  combineLatest,
+  defer,
+  map,
+  of,
+  switchMap,
+  withLatestFrom,
+  tap,
+} from "rxjs"
 import { ChainId } from "@/api/allChains"
 import { predefinedTransfers } from "./transfers"
-import { SS58String } from "polkadot-api"
 
 const PATTERN = "/send/:chain/:account"
-
-// todo: fetch per token
-const DECIMALS = 10
 
 export const accountRoute$ = state(
   routeMatch$(PATTERN).pipe(
@@ -50,11 +55,16 @@ export const recipient$ = state(
 export const transferAmount$ = state(
   routeMatch$(PATTERN).pipe(
     map((routeData) => {
-      const params = new URLSearchParams(routeData?.params.account)
-      const amount = params.get("amount")
+      const amount = routeData?.searchParams.get("amount")
+      const token = routeData?.searchParams.get(
+        "token",
+      ) as SupportedTokens | null
 
-      if (amount === null) return null
-      return parseCurrency(amount, DECIMALS)
+      if (amount == null || token == null) return null
+      return parseCurrency(
+        amount,
+        tokenDecimals[token.toUpperCase() as SupportedTokens],
+      )
     }),
   ),
   null,
@@ -78,11 +88,12 @@ export const recipientChainData$ = state(
 export const token$ = state(
   combineLatest([routeMatch$(PATTERN), recipientChainData$]).pipe(
     map(([routeData, chainData]) => {
-      const params = new URLSearchParams(routeData?.params.account)
       const str =
-        params.get("token") ?? chainData?.properties.tokenSymbol ?? null
+        routeData?.searchParams.get("token") ??
+        chainData?.properties.tokenSymbol ??
+        null
 
-      return str?.toUpperCase() ?? null
+      return (str?.toUpperCase() as SupportedTokens) ?? null
     }),
   ),
   null,
@@ -189,9 +200,11 @@ export const transferStatus$ = state(
   onSubmitted$.pipe(
     withLatestFrom(tx$, selectedAccount$),
     switchMap(([, tx, selectedAccount]) => {
-      if (!tx || !selectedAccount) return [null]
+      if (!tx || !selectedAccount) return []
 
       return tx.signSubmitAndWatch(selectedAccount.polkadotSigner)
     }),
+    tap((status) => console.log("Tx status: ", status)),
   ),
+  null,
 )
