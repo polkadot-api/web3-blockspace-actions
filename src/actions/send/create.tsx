@@ -1,7 +1,7 @@
 import { allChains, ChainId } from "@/api"
 import { formatValue } from "@/components/token-formatter"
 import { TokenInput } from "@/components/TokenInput"
-import { SupportedTokens, tokenDecimals } from "@/services/balances"
+import { chains, SupportedTokens, tokenDecimals } from "@/services/balances"
 import { state, useStateObservable, withDefault } from "@react-rxjs/core"
 import { createSignal, mergeWithKey } from "@react-rxjs/utils"
 import { useNavigate } from "react-router-dom"
@@ -33,11 +33,12 @@ const selectedChain$ = state(
   null,
 )
 const supportedCurrencies$ = selectedChain$.pipeState(
-  map(
-    (v) =>
-      ["DOT", ...((v ? chainCurrencies[v] : null) ?? [])] as SupportedTokens[],
-  ),
-  withDefault(["DOT"] as SupportedTokens[]),
+  map((v): SupportedTokens[] => {
+    const nativeToken = chains.find((c) => c.id === v)?.nativeToken ?? "DOT"
+
+    return [nativeToken, ...((v ? chainCurrencies[v] : null) ?? [])]
+  }),
+  withDefault([] as SupportedTokens[]),
 )
 const [currencySelected$, selectCurrency] = createSignal<SupportedTokens>()
 const selectedCurrency$ = state(

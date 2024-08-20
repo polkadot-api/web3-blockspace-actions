@@ -6,37 +6,45 @@ import {
   polkadotCollectivesApi,
   polkadotPeopleApi,
 } from "@/api"
+import { rococoApi } from "@/api/rococo"
+import { rococoAssetHubApi } from "@/api/rococoAssetHub"
+import { westendApi } from "@/api/westend"
+import { westendAssetHubApi } from "@/api/westendAssetHub"
 import { combineLatest, distinctUntilChanged, from, map, startWith } from "rxjs"
 
-export type SupportedTokens = "DOT" | "USDT" | "USDC"
+export type SupportedTokens = "DOT" | "USDT" | "USDC" | "WND" | "ROC"
 export const tokenDecimals: Record<SupportedTokens, number> = {
   DOT: 10,
   USDT: 6,
   USDC: 6,
+  WND: 12,
+  ROC: 12,
 }
 
-// Assuming DOT is the native token
 type GetAccountResult = ReturnType<
   typeof polkadotApi.query.System.Account.getValue
 >
 interface Chain {
   id: ChainId
+  nativeToken: SupportedTokens
   getSystemAccount: (address: string) => GetAccountResult
   getED: () => Promise<bigint>
   getAssetBalance?: (
-    asset: Exclude<SupportedTokens, "DOT">,
+    asset: "USDT" | "USDC",
     address: string,
   ) => Promise<{ balance: bigint } | null>
 }
 
-const chains: Chain[] = [
+export const chains: Chain[] = [
   {
     id: "polkadot",
+    nativeToken: "DOT",
     getSystemAccount: polkadotApi.query.System.Account.getValue,
     getED: polkadotApi.constants.Balances.ExistentialDeposit,
   },
   {
     id: "polkadotAssetHub",
+    nativeToken: "DOT",
     getSystemAccount: polkadotAssetHubApi.query.System.Account.getValue,
     getED: polkadotAssetHubApi.constants.Balances.ExistentialDeposit,
     getAssetBalance: async (asset, addr) => {
@@ -49,18 +57,45 @@ const chains: Chain[] = [
   },
   {
     id: "polkadotBridgeHub",
+    nativeToken: "DOT",
     getSystemAccount: polkadotBridgeHubApi.query.System.Account.getValue,
     getED: polkadotBridgeHubApi.constants.Balances.ExistentialDeposit,
   },
   {
     id: "polkadotCollectives",
+    nativeToken: "DOT",
     getSystemAccount: polkadotCollectivesApi.query.System.Account.getValue,
     getED: polkadotCollectivesApi.constants.Balances.ExistentialDeposit,
   },
   {
     id: "polkadotPeople",
+    nativeToken: "DOT",
     getSystemAccount: polkadotPeopleApi.query.System.Account.getValue,
     getED: polkadotPeopleApi.constants.Balances.ExistentialDeposit,
+  },
+  {
+    id: "rococo",
+    nativeToken: "ROC",
+    getSystemAccount: rococoApi.query.System.Account.getValue,
+    getED: rococoApi.constants.Balances.ExistentialDeposit,
+  },
+  {
+    id: "rococoAssetHub",
+    nativeToken: "ROC",
+    getSystemAccount: rococoAssetHubApi.query.System.Account.getValue,
+    getED: rococoAssetHubApi.constants.Balances.ExistentialDeposit,
+  },
+  {
+    id: "westend",
+    nativeToken: "WND",
+    getSystemAccount: westendApi.query.System.Account.getValue,
+    getED: westendApi.constants.Balances.ExistentialDeposit,
+  },
+  {
+    id: "westendAssetHub",
+    nativeToken: "WND",
+    getSystemAccount: westendAssetHubApi.query.System.Account.getValue,
+    getED: westendAssetHubApi.constants.Balances.ExistentialDeposit,
   },
 ]
 
@@ -90,7 +125,7 @@ const getBalance = async (
   token: SupportedTokens,
   address: string,
 ) => {
-  if (token === "DOT") {
+  if (token === chain.nativeToken) {
     const [account, ed] = await Promise.all([
       chain.getSystemAccount(address),
       chain.getED(),
@@ -100,7 +135,9 @@ const getBalance = async (
     }
   }
 
-  if (!chain.getAssetBalance) return null
+  // TODO hacking, improve later lol
+  if (!chain.getAssetBalance || !(token === "USDC" || token === "USDT"))
+    return null
   const res = await chain.getAssetBalance(token, address)
   return (
     res && {
@@ -112,7 +149,7 @@ const getBalance = async (
 export const assetHubTokenIds = {
   USDC: 1_337,
   USDT: 1_984,
-} satisfies Record<Exclude<SupportedTokens, "DOT">, number>
+}
 
 function getTransferableBalance(
   account: {

@@ -21,6 +21,22 @@
     "polkadot_people": {
       "chain": "polkadot_people",
       "metadata": ".papi/metadata/polkadot_people.scale"
+    },
+    "rococo": {
+      "chain": "rococo_v2_2",
+      "metadata": ".papi/metadata/rococo.scale"
+    },
+    "rococoAssetHub": {
+      "chain": "rococo_v2_2_asset_hub",
+      "metadata": ".papi/metadata/rococoAssetHub.scale"
+    },
+    "westend": {
+      "chain": "westend2",
+      "metadata": ".papi/metadata/westend.scale"
+    },
+    "westendAssetHub": {
+      "chain": "westend2_asset_hub",
+      "metadata": ".papi/metadata/westendAssetHub.scale"
     }
   }
 }
