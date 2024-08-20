@@ -1,15 +1,13 @@
+import { AccountSelector } from "@/AccountSelector.tsx"
+import { truncateAddress } from "@/utils/address.ts"
 import { useStateObservable } from "@react-rxjs/core"
-import { SS58String } from "polkadot-api"
+import { formatCurrency } from "../../utils/format-currency.ts"
 import {
   recipient$,
   recipientChainData$,
-  transferAmount$,
   token$,
+  transferAmount$,
 } from "./send"
-import { formatCurrency } from "../../utils/format-currency.ts"
-import Void from "../void.tsx"
-import { selectedAccount$ } from "@/services/accounts.ts"
-import { AccountSelector } from "@/AccountSelector.tsx"
 
 recipientChainData$.subscribe()
 transferAmount$.subscribe()
@@ -22,7 +20,7 @@ export const SendAction = () => {
   const recipient = useStateObservable(recipient$)
   const token = useStateObservable(token$)
 
-  if (!chainData || !transferAmount || !recipient) return <Void />
+  if (!chainData || !transferAmount || !recipient) return null
 
   return (
     <div className="flex flex-col text-center items-center ">
@@ -53,9 +51,4 @@ export const SendAction = () => {
       </div>
     </div>
   )
-}
-
-export const truncateAddress = (address: SS58String) => {
-  if (address.length < 6) return address
-  return address.slice(0, 4) + "..." + address.slice(address.length - 4)
 }

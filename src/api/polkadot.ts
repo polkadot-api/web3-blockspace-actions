@@ -8,7 +8,7 @@ export const decodedPolkadotSpec = polkadotSpec.then((v) =>
   JSON.parse(v.chainSpec),
 )
 
-const chain = polkadotSpec.then(smoldot.addChain)
-const client = createClient(getSmProvider(chain))
+export const polkadotChain = polkadotSpec.then(smoldot.addChain)
+const client = createClient(getSmProvider(polkadotChain))
 
 export const polkadotApi = client.getTypedApi(polkadot)
