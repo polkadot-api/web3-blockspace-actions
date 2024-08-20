@@ -13,6 +13,7 @@ export const decodedPolkadotAssetHubSpec = polkadotAssetHubSpec.then(
 )
 
 const chain = addParachain(polkadotChain, polkadotAssetHubSpec)
-const client = createClient(getSmProvider(chain))
+export const polkadotAssetHubClient = createClient(getSmProvider(chain))
 
-export const polkadotAssetHubApi = client.getTypedApi(polkadot_asset_hub)
+export const polkadotAssetHubApi =
+  polkadotAssetHubClient.getTypedApi(polkadot_asset_hub)

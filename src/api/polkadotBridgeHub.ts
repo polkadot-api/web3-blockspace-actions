@@ -13,6 +13,7 @@ export const decodedPolkadotBridgeHubSpec = polkadotBridgeHubSpec.then(
 )
 
 const chain = addParachain(polkadotChain, polkadotBridgeHubSpec)
-const client = createClient(getSmProvider(chain))
+export const polkadotBridgeHubClient = createClient(getSmProvider(chain))
 
-export const polkadotBridgeHubApi = client.getTypedApi(polkadot_bridge_hub)
+export const polkadotBridgeHubApi =
+  polkadotBridgeHubClient.getTypedApi(polkadot_bridge_hub)

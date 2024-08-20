@@ -31,7 +31,7 @@ export const AccountSelector: React.FC = () => {
     <div>
       <button
         className={twMerge(
-          "border border-[#ff007b] rounded-full px-4 hover:bg-gray-200",
+          "border border-pink rounded-full px-4 hover:bg-pink hover:text-white",
           buttonStyles,
         )}
         onClick={() => setAccountPickerOpen(true)}

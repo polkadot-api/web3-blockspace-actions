@@ -10,6 +10,6 @@ export const decodedWestendSpec = westendSpec.then(
 )
 
 export const westendChain = westendSpec.then(smoldot.addChain)
-const client = createClient(getSmProvider(westendChain))
+export const westendClient = createClient(getSmProvider(westendChain))
 
-export const westendApi = client.getTypedApi(westend)
+export const westendApi = westendClient.getTypedApi(westend)
