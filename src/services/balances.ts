@@ -13,6 +13,13 @@ import { westendAssetHubApi } from "@/api/westendAssetHub"
 import { combineLatest, distinctUntilChanged, from, map, startWith } from "rxjs"
 
 export type SupportedTokens = "DOT" | "USDT" | "USDC" | "WND" | "ROC"
+
+export function isSupportedToken(token: string): token is SupportedTokens {
+  return (["DOT", "USDT", "USDC", "WND", "ROC"] as const).includes(
+    token as SupportedTokens,
+  )
+}
+
 export const tokenDecimals: Record<SupportedTokens, number> = {
   DOT: 10,
   USDT: 6,
