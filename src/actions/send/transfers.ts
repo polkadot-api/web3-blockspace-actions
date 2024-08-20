@@ -6,6 +6,10 @@ import {
   polkadotCollectivesApi,
   polkadotPeopleApi,
 } from "@/api"
+import { rococoApi } from "@/api/rococo"
+import { rococoAssetHubApi } from "@/api/rococoAssetHub"
+import { westendApi } from "@/api/westend"
+import { westendAssetHubApi } from "@/api/westendAssetHub"
 import { assetHubTokenIds, SupportedTokens } from "@/services/balances"
 import {
   MultiAddress,
@@ -36,6 +40,10 @@ const createChainMap = <T>(createValue: () => T): Record<ChainId, T> => ({
   polkadotBridgeHub: createValue(),
   polkadotCollectives: createValue(),
   polkadotPeople: createValue(),
+  rococo: createValue(),
+  rococoAssetHub: createValue(),
+  westend: createValue(),
+  westendAssetHub: createValue(),
 })
 
 export const predefinedTransfers: PredefinedTransfers = createChainMap(() =>
@@ -65,10 +73,12 @@ interface Parachain extends Chain {
 }
 interface RelayChain extends Chain {
   parachains: Parachain[]
+  nativeToken: SupportedTokens
 }
 const chains: RelayChain[] = [
   {
     id: "polkadot",
+    nativeToken: "DOT",
     transfer: polkadotApi.tx.Balances.transfer_keep_alive,
     teleport: polkadotApi.tx.XcmPallet.teleport_assets,
     parachains: [
@@ -100,6 +110,34 @@ const chains: RelayChain[] = [
         parachainId: 1004,
         transfer: polkadotPeopleApi.tx.Balances.transfer_keep_alive,
         teleport: polkadotPeopleApi.tx.PolkadotXcm.teleport_assets,
+      },
+    ],
+  },
+  {
+    id: "rococo",
+    nativeToken: "ROC",
+    transfer: rococoApi.tx.Balances.transfer_keep_alive,
+    teleport: rococoApi.tx.XcmPallet.teleport_assets,
+    parachains: [
+      {
+        id: "rococoAssetHub",
+        parachainId: 1000,
+        transfer: rococoAssetHubApi.tx.Balances.transfer_keep_alive,
+        teleport: rococoAssetHubApi.tx.PolkadotXcm.teleport_assets,
+      },
+    ],
+  },
+  {
+    id: "westend",
+    nativeToken: "WND",
+    transfer: westendApi.tx.Balances.transfer_keep_alive,
+    teleport: westendApi.tx.XcmPallet.teleport_assets,
+    parachains: [
+      {
+        id: "westendAssetHub",
+        parachainId: 1000,
+        transfer: westendAssetHubApi.tx.Balances.transfer_keep_alive,
+        teleport: westendAssetHubApi.tx.PolkadotXcm.teleport_assets,
       },
     ],
   },
@@ -161,9 +199,8 @@ const nativeTokenToRelayChain =
     })
 
 // At the moment assuming there are no bridges between chains.
-// And assuming nativeToken = DOT
 chains.forEach((chain) => {
-  const nativeToken: SupportedTokens = "DOT"
+  const nativeToken = chain.nativeToken
 
   // relay <-> relay
   predefinedTransfers[chain.id][chain.id][nativeToken] = nativeTokenTransfer(
