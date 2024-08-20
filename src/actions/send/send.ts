@@ -6,6 +6,7 @@ import {
   findBalances$,
   isSupportedToken,
   SupportedTokens,
+  tokenDecimals,
 } from "@/services/balances.ts"
 import { parseCurrency } from "@/utils/currency"
 import { state } from "@react-rxjs/core"
@@ -15,9 +16,6 @@ import { ChainId } from "@/api/allChains"
 import { predefinedTransfers } from "./transfers"
 
 const PATTERN = "/send/:chain/:account"
-
-// todo: fetch per token
-const DECIMALS = 10
 
 export const accountRoute$ = state(
   routeMatch$(PATTERN).pipe(
@@ -49,11 +47,13 @@ export const recipient$ = state(
 export const transferAmount$ = state(
   routeMatch$(PATTERN).pipe(
     map((routeData) => {
-      const params = new URLSearchParams(routeData?.params.account)
-      const amount = params.get("amount")
+      const amount = routeData?.searchParams.get("amount")
+      const token = routeData?.searchParams.get(
+        "token",
+      ) as SupportedTokens | null
 
-      if (amount === null) return null
-      return parseCurrency(amount, DECIMALS)
+      if (amount == null || token == null) return null
+      return parseCurrency(amount, tokenDecimals[token])
     }),
   ),
   null,
@@ -77,11 +77,12 @@ export const recipientChainData$ = state(
 export const token$ = state(
   combineLatest([routeMatch$(PATTERN), recipientChainData$]).pipe(
     map(([routeData, chainData]) => {
-      const params = new URLSearchParams(routeData?.params.account)
       const str =
-        params.get("token") ?? chainData?.properties.tokenSymbol ?? null
+        routeData?.searchParams.get("token") ??
+        chainData?.properties.tokenSymbol ??
+        null
 
-      return str?.toUpperCase() ?? null
+      return (str?.toUpperCase() as SupportedTokens) ?? null
     }),
   ),
   null,
