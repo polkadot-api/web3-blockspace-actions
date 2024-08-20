@@ -1,11 +1,12 @@
 import { SS58String } from "polkadot-api"
-import { polkadotApi as paseoApi } from "./"
+import { polkadotApi as api } from "./"
 import { MultiAddress, VotingConviction } from "@polkadot-api/descriptors"
 
 export const getOptimalAmount = async (
   account: SS58String,
   at: string = "best",
-) => (await paseoApi.query.Staking.Ledger.getValue(account, { at }))?.active
+): Promise<bigint | undefined> =>
+  (await api.query.Staking.Ledger.getValue(account, { at }))?.active
 
 interface Casting {
   type: "Casting"
@@ -21,7 +22,7 @@ interface Delegating {
 
 export const getTracks = async (): Promise<Record<number, string>> =>
   Object.fromEntries(
-    (await paseoApi.constants.Referenda.Tracks()).map(([trackId, { name }]) => [
+    (await api.constants.Referenda.Tracks()).map(([trackId, { name }]) => [
       trackId,
       name
         .split("_")
@@ -34,7 +35,7 @@ const getTrackInfo = async (
   address: SS58String,
 ): Promise<Record<number, Casting | Delegating>> => {
   const convictionVoting =
-    await paseoApi.query.ConvictionVoting.VotingFor.getEntries(address)
+    await api.query.ConvictionVoting.VotingFor.getEntries(address)
 
   return Object.fromEntries(
     convictionVoting
@@ -70,9 +71,9 @@ export const delegate = async (
   const tracksInfo = await getTrackInfo(from)
 
   const txs: Array<
-    | ReturnType<typeof paseoApi.tx.ConvictionVoting.remove_vote>
-    | ReturnType<typeof paseoApi.tx.ConvictionVoting.undelegate>
-    | ReturnType<typeof paseoApi.tx.ConvictionVoting.delegate>
+    | ReturnType<typeof api.tx.ConvictionVoting.remove_vote>
+    | ReturnType<typeof api.tx.ConvictionVoting.undelegate>
+    | ReturnType<typeof api.tx.ConvictionVoting.delegate>
   > = []
   tracks.forEach((trackId) => {
     const trackInfo = tracksInfo[trackId]
@@ -89,7 +90,7 @@ export const delegate = async (
       if (trackInfo.type === "Casting") {
         trackInfo.referendums.forEach((index) => {
           txs.push(
-            paseoApi.tx.ConvictionVoting.remove_vote({
+            api.tx.ConvictionVoting.remove_vote({
               class: trackId,
               index,
             }),
@@ -97,14 +98,14 @@ export const delegate = async (
         })
       } else
         txs.push(
-          paseoApi.tx.ConvictionVoting.undelegate({
+          api.tx.ConvictionVoting.undelegate({
             class: trackId,
           }),
         )
     }
 
     txs.push(
-      paseoApi.tx.ConvictionVoting.delegate({
+      api.tx.ConvictionVoting.delegate({
         class: trackId,
         conviction,
         to: MultiAddress.Id(target),
@@ -113,7 +114,7 @@ export const delegate = async (
     )
   })
 
-  return paseoApi.tx.Utility.batch_all({
+  return api.tx.Utility.batch_all({
     calls: txs.map((tx) => tx.decodedCall),
   })
 }
