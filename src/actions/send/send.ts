@@ -13,6 +13,7 @@ import { parseCurrency } from "@/utils/currency"
 import { state } from "@react-rxjs/core"
 import { createSignal } from "@react-rxjs/utils"
 import {
+  catchError,
   combineLatest,
   defer,
   filter,
@@ -20,11 +21,12 @@ import {
   materialize,
   of,
   scan,
+  startWith,
   switchMap,
-  tap,
   withLatestFrom,
 } from "rxjs"
 import { findRoute, predefinedTransfers } from "./transfers"
+import { toast } from "react-toastify"
 
 const PATTERN = "/send/:chain/:account"
 
@@ -213,10 +215,7 @@ export const feeEstimation$ = state(
                     .tx(recipient, transferAmount)
                     .getEstimatedFees(selectedAccount.address),
                 ),
-              ).pipe(
-                tap((v) => console.log(v)),
-                map((v) => v.reduce((a, b) => a + b)),
-              )
+              ).pipe(map((v) => v.reduce((a, b) => a + b, 0n)))
             : [null]
         },
       ),
@@ -252,15 +251,72 @@ export const tx$ = state(
   ),
 )
 
+export enum TransactionStatus {
+  Signing = 5,
+  Broadcasted = 25,
+  BestBlock = 50,
+  Finalized = 100,
+}
+
+const errorToast = (error: string) =>
+  toast(error, {
+    type: "error",
+  })
+
+const successToast = (message: string) =>
+  toast(message, {
+    type: "success",
+  })
+
 export const transferStatus$ = state(
   onSubmitted$.pipe(
     withLatestFrom(tx$, selectedAccount$),
     switchMap(([, tx, selectedAccount]) => {
       if (!tx || !selectedAccount) return []
 
-      return tx.signSubmitAndWatch(selectedAccount.polkadotSigner)
+      return tx.signSubmitAndWatch(selectedAccount.polkadotSigner).pipe(
+        map((v) => {
+          switch (v.type) {
+            case "signed":
+            case "broadcasted":
+              return {
+                ok: true,
+                status: TransactionStatus.Broadcasted,
+              }
+            case "txBestBlocksState":
+              return {
+                ok: v.found && v.ok,
+                status: TransactionStatus.BestBlock,
+                number: v.found ? v.block.number : null,
+              }
+            case "finalized":
+              if (!v.ok) {
+                console.log("dispatchError", v.dispatchError)
+                const error =
+                  v.dispatchError.type === "Module"
+                    ? JSON.stringify(v.dispatchError.value)
+                    : v.dispatchError.type
+                errorToast("Transaction didn't succeed: " + error)
+                return null
+              }
+              successToast("Transaction succeeded 🎉")
+              return {
+                ok: true,
+                status: TransactionStatus.Finalized,
+              }
+          }
+        }),
+        catchError((err) => {
+          errorToast("Transaction failed: " + (err.message ?? "Unknown"))
+
+          return of(null)
+        }),
+        startWith({
+          ok: true,
+          status: TransactionStatus.Signing,
+        }),
+      )
     }),
-    tap((status) => console.log("Tx status: ", status)),
   ),
   null,
 )
