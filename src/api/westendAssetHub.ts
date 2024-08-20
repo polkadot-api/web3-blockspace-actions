@@ -13,6 +13,9 @@ export const decodedWestendAssetHubSpec = westendAssetHubSpec.then(
 )
 
 const westendAssetHubChain = addParachain(westendChain, westendAssetHubSpec)
-const client = createClient(getSmProvider(westendAssetHubChain))
+export const westendAssetHubClient = createClient(
+  getSmProvider(westendAssetHubChain),
+)
 
-export const westendAssetHubApi = client.getTypedApi(westendAssetHub)
+export const westendAssetHubApi =
+  westendAssetHubClient.getTypedApi(westendAssetHub)

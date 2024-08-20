@@ -13,6 +13,9 @@ export const decodedRococoAssetHubSpec = rococoAssetHubSpec.then(
 )
 
 const rococoAssetHubChain = addParachain(rococoChain, rococoAssetHubSpec)
-const client = createClient(getSmProvider(rococoAssetHubChain))
+export const rococoAssetHubClient = createClient(
+  getSmProvider(rococoAssetHubChain),
+)
 
-export const rococoAssetHubApi = client.getTypedApi(rococoAssetHub)
+export const rococoAssetHubApi =
+  rococoAssetHubClient.getTypedApi(rococoAssetHub)

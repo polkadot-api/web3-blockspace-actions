@@ -13,6 +13,7 @@ export const decodedPolkadotCollectivesSpec = polkadotCollectivesSpec.then(
 )
 
 const chain = addParachain(polkadotChain, polkadotCollectivesSpec)
-const client = createClient(getSmProvider(chain))
+export const polkadotCollectivesClient = createClient(getSmProvider(chain))
 
-export const polkadotCollectivesApi = client.getTypedApi(polkadot_collectives)
+export const polkadotCollectivesApi =
+  polkadotCollectivesClient.getTypedApi(polkadot_collectives)

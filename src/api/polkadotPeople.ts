@@ -11,6 +11,7 @@ export const decodedPolkadotPeopleSpec = polkadotPeopleSpec.then(
 )
 
 const chain = addParachain(polkadotChain, polkadotPeopleSpec)
-const client = createClient(getSmProvider(chain))
+export const polkadotPeopleClient = createClient(getSmProvider(chain))
 
-export const polkadotPeopleApi = client.getTypedApi(polkadot_people)
+export const polkadotPeopleApi =
+  polkadotPeopleClient.getTypedApi(polkadot_people)

@@ -10,6 +10,6 @@ export const decodedRococoSpec = rococoSpec.then(
 )
 
 export const rococoChain = rococoSpec.then(smoldot.addChain)
-const client = createClient(getSmProvider(rococoChain))
+export const rococoClient = createClient(getSmProvider(rococoChain))
 
-export const rococoApi = client.getTypedApi(rococo)
+export const rococoApi = rococoClient.getTypedApi(rococo)
