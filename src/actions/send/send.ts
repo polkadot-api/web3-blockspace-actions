@@ -130,7 +130,7 @@ export const [onSubmitted$, submitTransfer$] = createSignal()
 export const feeEstimation$ = state(
   (senderChain: ChainId) =>
     combineLatest([
-      recipientChainData$,
+      recipientChainId$,
       token$,
       recipient$,
       transferAmount$,
@@ -155,7 +155,7 @@ export const feeEstimation$ = state(
 
           const tx =
             predefinedTransfers[senderChain as ChainId][
-              recipientChain.id as ChainId
+              recipientChain as ChainId
             ][token.toUpperCase() as SupportedTokens] ?? null
 
           return tx
