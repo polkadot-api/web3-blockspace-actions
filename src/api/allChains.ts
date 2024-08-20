@@ -42,3 +42,6 @@ export const allChains = {
     api: polkadotPeopleApi,
   },
 } satisfies Record<string, Chain<ChainDefinition>>
+
+export type ChainId = keyof typeof allChains
+export type AllChainApis = (typeof allChains)[ChainId]["api"]
