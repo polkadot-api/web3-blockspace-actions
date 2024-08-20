@@ -1,68 +1,97 @@
 import * as Progress from "@radix-ui/react-progress"
-import { useStateObservable } from "@react-rxjs/core"
-import { useEffect, useState } from "react"
-import { senderChainId$, submitTransfer$, transferStatus$ } from "./send"
-import { state } from "@react-rxjs/core"
-import { allChains, ChainId } from "@/api"
-import { of, merge } from "rxjs"
+import { state, useStateObservable, withDefault } from "@react-rxjs/core"
+import { map, of, switchMap, withLatestFrom } from "rxjs"
+import {
+  senderChainId$,
+  submitTransfer$,
+  TransactionStatus,
+  transferStatus$,
+} from "./send"
+import { allChains } from "@/api"
+import { twMerge } from "tailwind-merge"
+
+transferStatus$.subscribe()
 
 const finalizedBlock$ = state(
-  (chainId: ChainId | "") =>
-    chainId === "" ? of(null) : allChains[chainId].client.finalizedBlock$,
+  senderChainId$.pipe(
+    switchMap((chain) =>
+      chain ? allChains[chain].client.finalizedBlock$ : of(null),
+    ),
+  ),
   null,
 )
 
-const subscriptions = state(merge(transferStatus$)).subscribe()
+const progress$ = transferStatus$.pipeState(
+  withLatestFrom(finalizedBlock$),
+  switchMap(([v, finalized]) => {
+    if (!v) return [null]
+
+    if (
+      v.status === TransactionStatus.BestBlock &&
+      "number" in v &&
+      v.number &&
+      finalized
+    ) {
+      const start = finalized.number
+      const end = v.number
+      return finalizedBlock$.pipe(
+        map((finalized) => ({
+          ok: v.ok,
+          value: v.status,
+          subProgress: {
+            value: finalized!.number - start,
+            total: end - start,
+          },
+        })),
+      )
+    }
+
+    return [
+      {
+        ok: v.ok,
+        value: v.status,
+      },
+    ]
+  }),
+  withDefault(null),
+)
+
+const transactionStatusLabel: Record<TransactionStatus, string> = {
+  [TransactionStatus.Signing]: "Signing",
+  [TransactionStatus.Broadcasted]:
+    "Broadcasting complete. Sending to best blocks",
+  [TransactionStatus.BestBlock]: "In best block state: ",
+  [TransactionStatus.Finalized]: "Transaction completed successfully!",
+}
 
 export default function Submit() {
-  const txStatus = useStateObservable(transferStatus$)
-  const selectedChain = useStateObservable(senderChainId$)!
-  const finalizedBlock = useStateObservable(finalizedBlock$(selectedChain))
+  const selectedChain = useStateObservable(senderChainId$)
 
-  const [isSubmitting, setSubmitting] = useState(false)
-  const [isTransacting, setIsTransacting] = useState(false)
-  const [statusLabel, setStatusLabel] = useState("")
+  const txProgress = useStateObservable(progress$)
+  const isTransacting =
+    txProgress && txProgress.value > TransactionStatus.Signing
+  const isSigning = !!txProgress && !isTransacting
+  const progress =
+    (txProgress?.value ?? 0) +
+    (txProgress && "subProgress" in txProgress
+      ? (50 * txProgress.subProgress.value) / txProgress.subProgress.total
+      : 0)
 
-  const [progress, setProgress] = useState(2)
-
-  useEffect(() => {
-    setProgress(5)
-  }, [isSubmitting])
-
-  useEffect(() => {
-    switch (txStatus?.type) {
-      case "signed": {
-        setProgress(25)
-        setIsTransacting(true)
-        setStatusLabel("Transaction Signed successfully. Broadcasting...")
-        break
-      }
-      case "broadcasted":
-        setProgress(50)
-        setStatusLabel("Broadcasting complete. Sending to best blocks")
-        break
-      case "txBestBlocksState":
-        setProgress(75)
-        setStatusLabel("In best blocks state: ")
-        // set micro progress per block
-        break
-      case "finalized":
-        setProgress(100)
-        setStatusLabel("Transaction completed successfully!")
-
-        // setTimeout(() => )
-        break
-    }
-  }, [txStatus])
+  if (!selectedChain) return null
 
   return (
     <div className="mb-5">
       {isTransacting ? (
         <>
-          <div className="mb-4 text-pink font-semibold flex flex-col">
-            <span>{statusLabel}</span>
-            {txStatus?.type === "txBestBlocksState" && txStatus.found === true
-              ? `${finalizedBlock?.number}/${txStatus.block.number}`
+          <div
+            className={twMerge(
+              "mb-4 text-pink font-semibold flex flex-col",
+              txProgress.ok ? "" : "text-orange-500",
+            )}
+          >
+            <span>{transactionStatusLabel[txProgress.value]}</span>
+            {"subProgress" in txProgress
+              ? `${txProgress.subProgress.value}/${txProgress.subProgress.total}`
               : null}
           </div>
           <Progress.Root
@@ -81,14 +110,11 @@ export default function Submit() {
       ) : (
         <>
           <button
-            className={`rounded mb-10 bg-pink p-2 text-white w-40 ${!selectedChain || isSubmitting ? "opacity-80" : ""}`}
-            disabled={!selectedChain || isSubmitting}
-            onClick={() => {
-              submitTransfer$()
-              setSubmitting(true)
-            }}
+            className={`rounded mb-10 bg-pink p-2 text-white w-40 ${isSigning ? "opacity-80" : ""}`}
+            disabled={isSigning}
+            onClick={submitTransfer$}
           >
-            {isSubmitting ? "Sign transaction" : "Send Transaction"}
+            {isSigning ? "Sign transaction" : "Send Transaction"}
           </button>
         </>
       )}
