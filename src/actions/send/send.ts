@@ -15,6 +15,7 @@ import { createSignal } from "@react-rxjs/utils"
 import {
   combineLatest,
   defer,
+  filter,
   map,
   materialize,
   of,
@@ -23,7 +24,7 @@ import {
   tap,
   withLatestFrom,
 } from "rxjs"
-import { predefinedTransfers } from "./transfers"
+import { findRoute, predefinedTransfers } from "./transfers"
 
 const PATTERN = "/send/:chain/:account"
 
@@ -121,8 +122,8 @@ export const balances$ = state(
             if (evt.kind === "C") {
               return state ?? []
             }
-            const result = evt.value.filter(
-              (b) => predefinedTransfers[b.chain.id][chainId][token!],
+            const result = evt.value.filter((b) =>
+              findRoute(b.chain.id, chainId, token),
             )
             // More might be coming
             if (!result.length) return null
@@ -161,6 +162,16 @@ export const [onChangeSenderChainId$, changeSenderChainId$] =
   createSignal<ChainId>()
 export const senderChainId$ = state(onChangeSenderChainId$, "")
 
+// TODO switching an account here will result in wrong value
+export const selectedRoute$ = state(
+  senderChainId$.pipe(
+    filter(Boolean),
+    withLatestFrom(recipientChainId$, token$),
+    map(([from, to, token]) => findRoute(from, to!, token!)),
+  ),
+  null,
+)
+
 export const [onSubmitted$, submitTransfer$] = createSignal()
 
 export const feeEstimation$ = state(
@@ -189,16 +200,22 @@ export const feeEstimation$ = state(
           )
             return [null]
 
-          const tx =
-            predefinedTransfers[senderChain as ChainId][
-              recipientChain as ChainId
-            ][token.toUpperCase() as SupportedTokens] ?? null
+          const route = findRoute(
+            senderChain,
+            recipientChain,
+            token.toUpperCase() as SupportedTokens,
+          )
 
-          return tx
-            ? defer(() =>
-                tx(recipient, transferAmount).getEstimatedFees(
-                  selectedAccount.address,
+          return route
+            ? combineLatest(
+                route.map((r) =>
+                  r
+                    .tx(recipient, transferAmount)
+                    .getEstimatedFees(selectedAccount.address),
                 ),
+              ).pipe(
+                tap((v) => console.log(v)),
+                map((v) => v.reduce((a, b) => a + b)),
               )
             : [null]
         },
