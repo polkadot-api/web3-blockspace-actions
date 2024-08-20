@@ -70,10 +70,13 @@ export const transferAmount$ = state(
   null,
 )
 
+const recipientChainId$ = routeMatch$(PATTERN).pipe(
+  map((routeData) => routeData?.params.chain),
+)
+
 export const recipientChainData$ = state(
-  routeMatch$(PATTERN).pipe(
-    switchMap((routeData) => {
-      const myKey = routeData?.params.chain
+  recipientChainId$.pipe(
+    switchMap((myKey) => {
       if (!myKey || !(myKey in allChains)) return [null]
 
       return defer(() =>
@@ -170,7 +173,7 @@ export const feeEstimation$ = state(
 
 export const tx$ = state(
   combineLatest([
-    recipientChainData$,
+    recipientChainId$,
     senderChainId$,
     token$,
     recipient$,
@@ -187,9 +190,9 @@ export const tx$ = state(
         return null
 
       const tx =
-        predefinedTransfers[senderChain as ChainId][
-          recipientChain.id as ChainId
-        ][token.toUpperCase() as SupportedTokens] ?? null
+        predefinedTransfers[senderChain as ChainId][recipientChain as ChainId][
+          token.toUpperCase() as SupportedTokens
+        ] ?? null
 
       return tx ? tx(recipient, transferAmount) : null
     }),
