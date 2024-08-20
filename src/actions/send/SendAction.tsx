@@ -16,8 +16,9 @@ import {
   transferStatus$,
 } from "./send"
 import { ChainId } from "@/api/allChains.ts"
+import { tokenDecimals } from "@/services/balances.ts"
 
-const subscriptions = state(
+state(
   merge(
     accountsWithSufficientBalance$,
     recipient$,
@@ -40,6 +41,7 @@ export default function SendAction() {
   if (!recipient) return "No valid recipient"
   if (!token) return "No valid token"
 
+  const decimals = tokenDecimals[token]
   return (
     <div className="flex flex-col text-center items-center ">
       <h1 className="text-lg my-5 font-semibold">Send Tokens</h1>
@@ -48,7 +50,7 @@ export default function SendAction() {
         <div className="flex flex-row justify-between">
           Amount:{" "}
           <div className="text-right">
-            {formatCurrency(transferAmount, 10)}
+            {formatCurrency(transferAmount, decimals)}
             {token}
           </div>
         </div>
@@ -67,7 +69,7 @@ export default function SendAction() {
           <AccountSelector />
         </div>
         <div className="font-semibold">Select a chain</div>
-        <ChainSelector />
+        <ChainSelector decimals={decimals} />
       </div>
       <button
         className="rounded bg-pink-500 p-2 text-white"
@@ -79,7 +81,7 @@ export default function SendAction() {
   )
 }
 
-const ChainSelector: React.FC = () => {
+const ChainSelector: React.FC<{ decimals: number }> = ({ decimals }) => {
   const balances = useStateObservable(accountsWithSufficientBalance$)
   const selectedChain = useStateObservable(senderChainId$)
 
@@ -101,7 +103,8 @@ const ChainSelector: React.FC = () => {
               <span className="invisible size-2 rounded-full bg-white group-data-[checked]:visible" />
             </Radio>
             <Label>
-              {balance.chain.id}: {formatCurrency(balance.transferable, 10)}
+              {balance.chain.id}:{" "}
+              {formatCurrency(balance.transferable, decimals)}
             </Label>
           </Field>
         ))}
