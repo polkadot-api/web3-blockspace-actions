@@ -7,8 +7,10 @@ import {
   polkadotPeopleApi,
 } from "@/api"
 import { combineLatest, distinctUntilChanged, from, map, startWith } from "rxjs"
-
 export type SupportedTokens = "DOT" | "USDT" | "USDC"
+export function isSupportedToken(token: string): token is SupportedTokens {
+  return (["DOT", "USDT", "USDC"] as const).includes(token as SupportedTokens)
+}
 
 // Assuming DOT is the native token
 type GetAccountResult = ReturnType<
