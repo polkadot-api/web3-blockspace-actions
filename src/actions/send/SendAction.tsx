@@ -29,7 +29,7 @@ const subscriptions = state(
   ),
 ).subscribe()
 
-export const SendAction = () => {
+export default function SendAction() {
   const recipientChainData = useStateObservable(recipientChainData$)
   const transferAmount = useStateObservable(transferAmount$)
   const recipient = useStateObservable(recipient$)
@@ -38,6 +38,7 @@ export const SendAction = () => {
   if (!recipientChainData) return "No valid recipient chain"
   if (!transferAmount) return "Specify Transfer Amount"
   if (!recipient) return "No valid recipient"
+  if (!token) return "No valid token"
 
   return (
     <div className="flex flex-col text-center items-center ">

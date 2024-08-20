@@ -7,25 +7,29 @@ export interface FormatOptions {
 
 export const fractionalSeparator = (0.1).toLocaleString().substring(1, 2)
 export const thousandsSeparator = (1000).toLocaleString().substring(1, 2)
-export function formatValue(value: bigint, decimals: number) {
+export function formatValue(
+  value: bigint,
+  decimals: number,
+  withThousands = true,
+) {
   if (!decimals) return value.toLocaleString()
 
   const mod = 10n ** BigInt(decimals)
   const integerPart = value / mod
   const fractionalPart = value % mod
 
-  return (
-    integerPart.toLocaleString() +
-    (fractionalPart
-      ? fractionalSeparator +
-        fractionalPart
-          .toString()
-          .padStart(decimals, "0")
-          .replaceAll("0", " ")
-          .trimEnd()
-          .replaceAll(" ", "0")
-      : "")
-  )
+  return withThousands
+    ? integerPart.toLocaleString()
+    : integerPart.toString() +
+        (fractionalPart
+          ? fractionalSeparator +
+            fractionalPart
+              .toString()
+              .padStart(decimals, "0")
+              .replaceAll("0", " ")
+              .trimEnd()
+              .replaceAll(" ", "0")
+          : "")
 }
 export function format(value: bigint, formatOptions: FormatOptions) {
   const suffix = formatOptions.symbol ? ` ${formatOptions.symbol}` : ""

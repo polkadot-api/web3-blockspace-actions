@@ -14,6 +14,10 @@ import {
   polkadotCollectivesApi,
 } from "./polkadotCollectives"
 import { decodedPolkadotPeopleSpec, polkadotPeopleApi } from "./polkadotPeople"
+import { decodedRococoSpec, rococoApi } from "./rococo"
+import { decodedRococoAssetHubSpec, rococoAssetHubApi } from "./rococoAssetHub"
+import { decodedWestendSpec, westendApi } from "./westend"
+import { decodedWestendAssetHubSpec } from "./westendAssetHub"
 
 export interface Chain<T extends ChainDefinition> {
   chainSpec: Promise<ChainSpec>
@@ -40,6 +44,22 @@ export const allChains = {
   polkadotPeople: {
     chainSpec: decodedPolkadotPeopleSpec,
     api: polkadotPeopleApi,
+  },
+  rococo: {
+    chainSpec: decodedRococoSpec,
+    api: rococoApi,
+  },
+  rococoAssetHub: {
+    chainSpec: decodedRococoAssetHubSpec,
+    api: rococoAssetHubApi,
+  },
+  westend: {
+    chainSpec: decodedWestendSpec,
+    api: westendApi,
+  },
+  westendAssetHub: {
+    chainSpec: decodedWestendAssetHubSpec,
+    api: westendApi,
   },
 } satisfies Record<string, Chain<ChainDefinition>>
 

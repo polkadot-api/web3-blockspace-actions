@@ -80,6 +80,7 @@ export const token$ = state(
       const params = new URLSearchParams(routeData?.params.account)
       const str =
         params.get("token") ?? chainData?.properties.tokenSymbol ?? null
+
       return str?.toUpperCase() ?? null
     }),
   ),
