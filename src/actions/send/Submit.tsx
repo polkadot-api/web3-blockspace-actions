@@ -1,24 +1,27 @@
-import { useStateObservable, state } from "@react-rxjs/core"
-import { submitTransfer$, transferStatus$, senderChainId$ } from "./send"
-import { useEffect, useState } from "react"
 import * as Progress from "@radix-ui/react-progress"
+import { useStateObservable } from "@react-rxjs/core"
+import { useEffect, useState } from "react"
+import { senderChainId$, submitTransfer$, transferStatus$ } from "./send"
+import { state } from "@react-rxjs/core"
 import { allChains, ChainId } from "@/api"
-import { of } from "rxjs"
+import { of, merge } from "rxjs"
 
-const subscriptions = transferStatus$.subscribe()
+const finalizedBlock$ = state(
+  (chainId: ChainId | "") =>
+    chainId === "" ? of(null) : allChains[chainId].client.finalizedBlock$,
+  null,
+)
 
-// const finalizedBlock$ = state((chainId: ChainId | "") =>
-//   chainId === "" ? of(null) : allChains[chainId].client.finalizedBlock$,
-// )
+const subscriptions = state(merge(transferStatus$)).subscribe()
 
 export default function Submit() {
   const txStatus = useStateObservable(transferStatus$)
   const selectedChain = useStateObservable(senderChainId$)!
-  //   const finalizedBlock = useStateObservable(finalizedBlock$(selectedChain))
-  //   const [firstBestBlock, setFirstBestBlock] = useState<number | null>(null)
+  const finalizedBlock = useStateObservable(finalizedBlock$(selectedChain))
 
   const [isSubmitting, setSubmitting] = useState(false)
   const [isTransacting, setIsTransacting] = useState(false)
+  const [statusLabel, setStatusLabel] = useState("")
 
   const [progress, setProgress] = useState(2)
 
@@ -31,25 +34,37 @@ export default function Submit() {
       case "signed": {
         setProgress(25)
         setIsTransacting(true)
+        setStatusLabel("Transaction Signed successfully. Broadcasting...")
         break
       }
       case "broadcasted":
         setProgress(50)
+        setStatusLabel("Broadcasting complete. Sending to best blocks")
         break
       case "txBestBlocksState":
         setProgress(75)
+        setStatusLabel("In best blocks state: ")
         // set micro progress per block
         break
       case "finalized":
         setProgress(100)
+        setStatusLabel("Transaction completed successfully!")
+
+        // setTimeout(() => )
         break
     }
   }, [txStatus])
 
   return (
-    <div>
+    <div className="mb-5">
       {isTransacting ? (
         <>
+          <div className="mb-4 text-pink font-semibold flex flex-col">
+            <span>{statusLabel}</span>
+            {txStatus?.type === "txBestBlocksState" && txStatus.found === true
+              ? `${finalizedBlock?.number}/${txStatus.block.number}`
+              : null}
+          </div>
           <Progress.Root
             value={progress}
             className="bg-pink w-[350px] h-4 relative overflow-hidden rounded-xl"
@@ -62,7 +77,6 @@ export default function Submit() {
               }}
             />
           </Progress.Root>
-          {txStatus?.type}
         </>
       ) : (
         <>
