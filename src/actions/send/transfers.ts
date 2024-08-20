@@ -14,6 +14,8 @@ import { assetHubTokenIds, SupportedTokens } from "@/services/balances"
 import {
   MultiAddress,
   XcmV3Junction,
+  XcmV3JunctionNetworkId,
+  XcmV3Junctions,
   XcmV3MultiassetFungibility,
   XcmV3WeightLimit,
   XcmVersionedAssets,
@@ -21,12 +23,13 @@ import {
 } from "@polkadot-api/descriptors"
 import { AccountId, Binary, Enum, Transaction } from "polkadot-api"
 
+type TxFn = (
+  dest: string,
+  value: bigint,
+) => Transaction<object, string, string, unknown>
 type ChainPredefinedTransfers = {
   [K in ChainId]: {
-    [K in SupportedTokens]?: (
-      dest: string,
-      value: bigint,
-    ) => Transaction<object, string, string, unknown>
+    [K in SupportedTokens]?: TxFn
   }
 }
 
@@ -60,14 +63,43 @@ type TeleportFnParams = Parameters<
 type TransferAssetFnParams = Parameters<
   typeof polkadotAssetHubApi.tx.Assets.transfer_keep_alive
 >
+type TransferForeignAssetFnParams = Parameters<
+  typeof polkadotAssetHubApi.tx.ForeignAssets.transfer_keep_alive
+>
+type ReserveTransferFnParams = Parameters<
+  typeof polkadotAssetHubApi.tx.PolkadotXcm.reserve_transfer_assets
+>
 type UnknownTransaction = Transaction<object, string, string, unknown>
 interface Chain {
   id: ChainId
   transfer: (...args: TransferFnParams) => UnknownTransaction
   teleport: (...args: TeleportFnParams) => UnknownTransaction
-  assets?: { token: SupportedTokens; id: number }[]
+  assets?: Array<
+    { token: SupportedTokens } & (
+      | {
+          id: number
+        }
+      | {
+          parents: number
+          interior: XcmV3Junctions
+        }
+    )
+  >
   transferAsset?: (...args: TransferAssetFnParams) => UnknownTransaction
+  transferForeignAsset?: (
+    ...args: TransferForeignAssetFnParams
+  ) => UnknownTransaction
+  bridges?: Array<Bridge>
+  reserveTransfer?: (...args: ReserveTransferFnParams) => UnknownTransaction
 }
+interface Bridge {
+  chain: ChainId
+  interior: XcmV3Junctions
+  fromRelay?: ChainId
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  assets: Partial<Record<SupportedTokens, { parents: number; interior: any }>>
+}
+
 interface Parachain extends Chain {
   parachainId: number
 }
@@ -124,6 +156,41 @@ const chains: RelayChain[] = [
         parachainId: 1000,
         transfer: rococoAssetHubApi.tx.Balances.transfer_keep_alive,
         teleport: rococoAssetHubApi.tx.PolkadotXcm.teleport_assets,
+        bridges: [
+          {
+            chain: "westendAssetHub",
+            fromRelay: "rococo",
+            interior: XcmV3Junctions.X2([
+              XcmV3Junction.GlobalConsensus(XcmV3JunctionNetworkId.Westend()),
+              XcmV3Junction.Parachain(1000),
+            ]),
+            assets: {
+              WND: {
+                parents: 2,
+                interior: XcmV3Junctions.X1(
+                  XcmV3Junction.GlobalConsensus(
+                    XcmV3JunctionNetworkId.Westend(),
+                  ),
+                ),
+              },
+              ROC: {
+                parents: 1,
+                interior: XcmV3Junctions.Here(),
+              },
+            },
+          },
+        ],
+        reserveTransfer:
+          rococoAssetHubApi.tx.PolkadotXcm.reserve_transfer_assets,
+        assets: [
+          {
+            token: "WND",
+            parents: 2,
+            interior: XcmV3Junctions.X1(
+              XcmV3Junction.GlobalConsensus(XcmV3JunctionNetworkId.Westend()),
+            ),
+          },
+        ],
       },
     ],
   },
@@ -138,6 +205,41 @@ const chains: RelayChain[] = [
         parachainId: 1000,
         transfer: westendAssetHubApi.tx.Balances.transfer_keep_alive,
         teleport: westendAssetHubApi.tx.PolkadotXcm.teleport_assets,
+        bridges: [
+          {
+            chain: "rococoAssetHub",
+            fromRelay: "westend",
+            interior: XcmV3Junctions.X2([
+              XcmV3Junction.GlobalConsensus(XcmV3JunctionNetworkId.Rococo()),
+              XcmV3Junction.Parachain(1000),
+            ]),
+            assets: {
+              WND: {
+                parents: 1,
+                interior: XcmV3Junctions.Here(),
+              },
+              ROC: {
+                parents: 2,
+                interior: XcmV3Junctions.X1(
+                  XcmV3Junction.GlobalConsensus(
+                    XcmV3JunctionNetworkId.Westend(),
+                  ),
+                ),
+              },
+            },
+          },
+        ],
+        reserveTransfer:
+          westendAssetHubApi.tx.PolkadotXcm.reserve_transfer_assets,
+        assets: [
+          {
+            token: "ROC",
+            parents: 2,
+            interior: XcmV3Junctions.X1(
+              XcmV3Junction.GlobalConsensus(XcmV3JunctionNetworkId.Rococo()),
+            ),
+          },
+        ],
       },
     ],
   },
@@ -206,6 +308,8 @@ chains.forEach((chain) => {
   predefinedTransfers[chain.id][chain.id][nativeToken] = nativeTokenTransfer(
     chain.transfer,
   )
+  chain.bridges?.forEach((bridge) => addBridge(chain.id, bridge))
+
   chain.parachains.forEach((parachain) => {
     // relay <-> parachain
     predefinedTransfers[chain.id][parachain.id][nativeToken] =
@@ -226,6 +330,7 @@ chains.forEach((chain) => {
             )
 
       if (!destParachain.assets || !parachain.transferAsset) return
+
       parachainAssets
         .filter((asset) =>
           destParachain.assets!.find((a) => a.token === asset.token),
@@ -235,12 +340,135 @@ chains.forEach((chain) => {
             dest,
             amount,
           ) =>
-            parachain.transferAsset!({
-              id: asset.id,
-              target: MultiAddress.Id(dest),
-              amount,
-            })
+            "id" in asset
+              ? parachain.transferAsset!({
+                  id: asset.id,
+                  target: MultiAddress.Id(dest),
+                  amount,
+                })
+              : // TODO guard
+                parachain.transferForeignAsset!({
+                  id: asset,
+                  amount,
+                  target: MultiAddress.Id(dest),
+                })
         })
     })
+
+    parachain.bridges?.forEach((bridge) => addBridge(parachain.id, bridge))
   })
 })
+
+function addBridge(from: ChainId, bridge: Bridge) {
+  const destId = bridge.chain
+  const relayChain = chains.find(
+    (c) => c.id === bridge.fromRelay || c.id === from,
+  )
+  if (!relayChain) return
+  const chain = bridge.fromRelay
+    ? relayChain.parachains.find((c) => c.id === from)
+    : relayChain
+  if (!chain?.reserveTransfer) return
+
+  const isFromParachain = Boolean(bridge.fromRelay)
+
+  Object.entries(bridge.assets).forEach(([token, assetId]) => {
+    predefinedTransfers[from][destId][token as SupportedTokens] = (
+      dest,
+      value,
+    ) =>
+      chain.reserveTransfer!({
+        dest: XcmVersionedLocation.V3({
+          parents: isFromParachain ? 2 : 1,
+          interior: bridge.interior,
+        }),
+        beneficiary: destToBeneficiary(dest),
+        assets: XcmVersionedAssets.V4([
+          {
+            id: assetId,
+            fun: XcmV3MultiassetFungibility.Fungible(value),
+          },
+        ]),
+        fee_asset_item: 0,
+      })
+  })
+}
+
+export type Route = Array<{
+  from: ChainId
+  to: ChainId
+  tx: TxFn
+}>
+type Exploring = {
+  position: ChainId
+  route: Route
+  visited: Set<ChainId>
+}
+export function findRoute(
+  from: ChainId,
+  to: ChainId,
+  token: SupportedTokens,
+): Route | null {
+  // Direct shortcuts
+  if (
+    !(token in predefinedTransfers[from][from]) ||
+    !(token in predefinedTransfers[to][to])
+  )
+    return null
+  if (from === to) {
+    return [
+      {
+        from,
+        to,
+        tx: predefinedTransfers[from][to][token]!,
+      },
+    ]
+  }
+
+  let exploring: Array<Exploring> = [
+    {
+      position: from,
+      route: [],
+      visited: new Set(),
+    },
+  ]
+
+  // BFS to find the shortest amount of steps
+  while (exploring.length) {
+    const newExploring: Array<Exploring> = []
+
+    for (const exp of exploring) {
+      if (exp.position === to) {
+        return exp.route
+      }
+      const newVisited = new Set(exp.visited)
+      newVisited.add(exp.position)
+
+      const destinations = Object.keys(predefinedTransfers[exp.position])
+        .map((dest) => dest as ChainId)
+        .filter(
+          (dest) =>
+            !exp.visited.has(dest) &&
+            token in predefinedTransfers[exp.position][dest],
+        )
+      destinations.forEach((dest) =>
+        newExploring.push({
+          position: dest,
+          route: [
+            ...exp.route,
+            {
+              from: exp.position,
+              to: dest,
+              tx: predefinedTransfers[exp.position][dest][token]!,
+            },
+          ],
+          visited: newVisited,
+        }),
+      )
+    }
+
+    exploring = newExploring
+  }
+
+  return null
+}
