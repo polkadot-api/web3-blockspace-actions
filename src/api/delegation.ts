@@ -1,4 +1,4 @@
-import { SS58String } from "polkadot-api"
+import { Enum, SS58String } from "polkadot-api"
 import { polkadotApi as api } from "./"
 import { MultiAddress, VotingConviction } from "@polkadot-api/descriptors"
 
@@ -20,39 +20,41 @@ interface Delegating {
   conviction: VotingConviction
 }
 
-export const getTimeLock = async (
-  conviction: 0 | 1 | 2 | 3 | 4 | 5 | 6,
-): Promise<string> => {
-  if (conviction === 0) return "No lock"
+export const getTimeLocks = async (): Promise<string[]> => {
   const [blockTimeSeconds, lockedBlocks] = await Promise.all([
-    paseoApi.constants.Babe.ExpectedBlockTime(),
-    paseoApi.constants.ConvictionVoting.VoteLockingPeriod(),
+    api.constants.Babe.ExpectedBlockTime(),
+    api.constants.ConvictionVoting.VoteLockingPeriod(),
   ]).then(([milis, locked]) => [Number(milis / 1000n), locked])
-  console.log(lockedBlocks)
-  const hoursToUnlock = Math.ceil(
-    (blockTimeSeconds * lockedBlocks * 2 ** (conviction - 1)) / 60 / 60,
-  )
-  const hoursToPrint = hoursToUnlock % 24
-  const daysToPrint = ((hoursToUnlock - hoursToPrint) / 24) % 7
-  const weeksToPrint =
-    (hoursToUnlock - hoursToPrint - daysToPrint * 24) / 24 / 7
-  let returnStr = ""
-  let started = false
-  if (weeksToPrint) {
-    started = true
-    returnStr += `${weeksToPrint} weeks`
-  }
-  if (daysToPrint) {
-    if (started) returnStr += `, `
-    else started = true
-    returnStr += `${daysToPrint} days`
-  }
-  if (hoursToPrint) {
-    if (started) returnStr += `, `
-    else started = true
-    returnStr += `${hoursToPrint} hours`
-  }
-  return returnStr
+
+  return Array(7)
+    .fill(null)
+    .map((_, conviction) => {
+      if (conviction === 0) return "No lock"
+      const hoursToUnlock = Math.ceil(
+        (blockTimeSeconds * lockedBlocks * 2 ** (conviction - 1)) / 60 / 60,
+      )
+      const hoursToPrint = hoursToUnlock % 24
+      const daysToPrint = ((hoursToUnlock - hoursToPrint) / 24) % 7
+      const weeksToPrint =
+        (hoursToUnlock - hoursToPrint - daysToPrint * 24) / 24 / 7
+      let returnStr = ""
+      let started = false
+      if (weeksToPrint) {
+        started = true
+        returnStr += `${weeksToPrint} week${weeksToPrint > 1 ? "s" : ""}`
+      }
+      if (daysToPrint) {
+        if (started) returnStr += `, `
+        else started = true
+        returnStr += `${daysToPrint} days`
+      }
+      if (hoursToPrint) {
+        if (started) returnStr += `, `
+        else started = true
+        returnStr += `${hoursToPrint} hours`
+      }
+      return returnStr
+    })
 }
 
 export const getTracks = async (): Promise<Record<number, string>> =>
@@ -66,7 +68,7 @@ export const getTracks = async (): Promise<Record<number, string>> =>
     ]),
   )
 
-const getTrackInfo = async (
+export const getTrackInfo = async (
   address: SS58String,
 ): Promise<Record<number, Casting | Delegating>> => {
   const convictionVoting =
@@ -99,7 +101,7 @@ const getTrackInfo = async (
 export const delegate = async (
   from: SS58String,
   target: SS58String,
-  conviction: VotingConviction,
+  conviction: VotingConviction["type"],
   amount: bigint,
   tracks: Array<number>,
 ) => {
@@ -117,7 +119,7 @@ export const delegate = async (
       if (
         trackInfo.type === "Delegating" &&
         trackInfo.target === target &&
-        conviction.type === trackInfo.conviction.type &&
+        conviction === trackInfo.conviction.type &&
         amount === trackInfo.amount
       )
         return
@@ -142,7 +144,7 @@ export const delegate = async (
     txs.push(
       api.tx.ConvictionVoting.delegate({
         class: trackId,
-        conviction,
+        conviction: Enum(conviction),
         to: MultiAddress.Id(target),
         balance: amount,
       }),
@@ -152,4 +154,9 @@ export const delegate = async (
   return api.tx.Utility.batch_all({
     calls: txs.map((tx) => tx.decodedCall),
   })
+}
+
+export const getMaxDelegation = async (from: SS58String) => {
+  const { data: account } = await api.query.System.Account.getValue(from)
+  return account.free + account.reserved
 }

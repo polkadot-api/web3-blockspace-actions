@@ -13,18 +13,27 @@ import {
   EMPTY,
   from,
   map,
-  startWith,
+  of,
   switchMap,
   take,
 } from "rxjs"
 import { createSignal, switchMapSuspended } from "@react-rxjs/utils"
-import { getOptimalAmount, getTracks } from "@/api/delegation"
+import {
+  delegate,
+  getMaxDelegation,
+  getOptimalAmount,
+  getTimeLocks,
+  getTrackInfo,
+  getTracks,
+} from "@/api/delegation"
 import { SS58String } from "polkadot-api"
 import { selectedAccount$ } from "@/services/accounts"
 import { TokenInput } from "@/components/TokenInput"
 import { VotingConviction } from "@polkadot-api/descriptors"
 import { MultiSelect } from "@/components/multi-select"
-import { useState } from "react"
+import { FeesAndSubmit } from "./FeesAndSubmit"
+import { shortStr } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 const [amountInput$, onAmountChange] = createSignal<bigint | null>()
 
@@ -32,7 +41,7 @@ const optimalAmount$ = state((account: SS58String) =>
   from(getOptimalAmount(account)),
 )
 const amount$ = state(
-  combineLatest(routeChain$, delegateAccount$, selectedAccount$).pipe(
+  combineLatest([routeChain$, delegateAccount$, selectedAccount$]).pipe(
     switchMapSuspended(([, , account]) => {
       if (!account) return EMPTY
       return concat(
@@ -46,17 +55,34 @@ const amount$ = state(
   ),
 )
 
+const maxDelegation$ = selectedAccount$.pipeState(
+  switchMap((account) => (account ? getMaxDelegation(account.address) : EMPTY)),
+)
+
 const AmountInput: React.FC = () => {
   const amount = useStateObservable(amount$)
+  const freeBalance = useStateObservable(maxDelegation$)
   return (
-    <TokenInput
-      value={amount}
-      onChange={onAmountChange}
-      token={{
-        name: "DOT",
-        decimals: 10,
-      }}
-    />
+    <>
+      <h2 className="font-bold">Amount to delegate:</h2>
+      <div>
+        <TokenInput
+          value={amount}
+          onChange={onAmountChange}
+          token={{
+            name: "DOT",
+            decimals: 10,
+          }}
+        />
+        <Button
+          onClick={() => {
+            onAmountChange(freeBalance)
+          }}
+        >
+          Max
+        </Button>
+      </div>
+    </>
   )
 }
 
@@ -68,14 +94,6 @@ const convictionVotes: Array<VotingConviction["type"]> = [
   "Locked4x",
   "Locked5x",
   "Locked6x",
-]
-
-const frameworksList = [
-  { value: "react", label: "React" },
-  { value: "angular", label: "Angular" },
-  { value: "vue", label: "Vue" },
-  { value: "svelte", label: "Svelte" },
-  { value: "ember", label: "Ember" },
 ]
 
 const [convictionInput$, onConvictionInputChanges] = createSignal<
@@ -97,26 +115,29 @@ const conviction$: StateObservable<0 | 1 | 2 | 3 | 4 | 5 | 6 | SUSPENSE> =
     ),
   )
 
+const convictions$ = state(defer(getTimeLocks))
 const ConvictionInput: React.FC = () => {
+  const convictions = useStateObservable(convictions$)
   const conviction = useStateObservable(conviction$)
   return (
     <>
-      {Array(7)
-        .fill(null)
-        .map((_, idx) => (
-          <label key={idx}>
-            <input
-              onChange={(e) => {
-                onConvictionInputChanges(parseInt(e.target.value.slice(1)) as 0)
-              }}
-              checked={conviction === idx}
-              type="radio"
-              value={"x" + idx}
-              name="conviction"
-            />
-            {idx === 0 ? "None" : "x" + idx}
-          </label>
-        ))}
+      <h2 className="mt-4 font-bold">Conviction: </h2>
+      {convictions.map((convictionLabel, idx) => (
+        <label key={idx}>
+          <input
+            onChange={(e) => {
+              onConvictionInputChanges(parseInt(e.target.value.slice(1)) as 0)
+            }}
+            checked={conviction === idx}
+            type="radio"
+            value={"x" + idx}
+            name="conviction"
+          />
+          {idx > 0
+            ? ` x${idx} voting power (${convictionLabel} lock)`
+            : " x0.1 voting power (no lock)"}
+        </label>
+      ))}
     </>
   )
 }
@@ -126,43 +147,139 @@ const tracks$ = state(
     map((x) => Object.entries(x).map(([value, label]) => ({ value, label }))),
   ),
 )
+const [selectedTrackInput$, onChangeSelectedTrack] =
+  createSignal<Array<string>>()
 
 const SelectTracks: React.FC = () => {
   const tracks = useStateObservable(tracks$)
+  return (
+    <>
+      <h2 className="mt-4 font-bold">Tracks to delegate:</h2>
+      <MultiSelect
+        options={tracks}
+        onValueChange={onChangeSelectedTrack}
+        defaultValue={tracks.map((x) => x.value)}
+        placeholder="Select tracks"
+        variant="inverted"
+        animation={2}
+        maxCount={3}
+      />
+    </>
+  )
+}
+
+const delegateInput$ = state(
+  combineLatest([
+    selectedAccount$,
+    delegateAccount$,
+    conviction$.pipe(map((x) => (x === SUSPENSE ? null : x))),
+    amount$.pipe(map((x) => (x === SUSPENSE ? null : x))),
+    concat(
+      tracks$.pipe(
+        map((x) => x.map((y) => y.value)),
+        take(1),
+      ),
+      selectedTrackInput$,
+    ).pipe(map((x) => x.map((y) => parseInt(y, 10)))),
+  ]).pipe(
+    map(([selectedAccount, delegateAccount, conviction, amount, tracks]) => {
+      return !selectedAccount ||
+        !delegateAccount ||
+        conviction == null ||
+        amount == null
+        ? null
+        : ([
+            selectedAccount.address,
+            delegateAccount,
+            conviction,
+            amount,
+            tracks,
+          ] as const)
+    }),
+    switchMap((x) => {
+      if (x === null) return of(null)
+      const [from, target, conviction, amount, tracks] = x
+      return concat(
+        of(null),
+        delegate(from, target, convictionVotes[conviction], amount, tracks),
+      )
+    }),
+  ),
+  null,
+)
+
+const Delegate: React.FC = () => {
+  const tx = useStateObservable(delegateInput$)
+  const selectedAccount = useStateObservable(selectedAccount$)!
+  return (
+    <FeesAndSubmit
+      txCall={tx}
+      account={selectedAccount}
+      decimals={10}
+      ticker="DOT"
+    >
+      Delegate
+    </FeesAndSubmit>
+  )
+}
+
+const warnings$ = selectedAccount$.pipeState(
+  switchMap((account) => (account ? getTrackInfo(account.address) : of({}))),
+  map((record) => {
+    const undelegations: Record<string, number[]> = {}
+    const votesRemoved: Array<number> = []
+    Object.entries(record).forEach(([trackId, action]) => {
+      if (action.type === "Casting") {
+        votesRemoved.push(...action.referendums)
+      } else {
+        const arr = undelegations[action.target] ?? []
+        arr.push(Number(trackId))
+        undelegations[action.target] = arr
+      }
+    })
+
+    Object.values(undelegations).forEach((x) => x.sort((a, b) => a - b))
+    votesRemoved.sort((a, b) => a - b)
+
+    return { undelegations, votesRemoved }
+  }),
+)
+
+const Warnings: React.FC = () => {
+  const { undelegations, votesRemoved } = useStateObservable(warnings$)
+  return (
+    <>
+      {Object.entries(undelegations).map(([address, tracks]) => (
+        <div>
+          You will stop delegating to {shortStr(4, address)} on the following
+          tracks: {tracks.join(", ")}.
+        </div>
+      ))}
+      {votesRemoved.length > 0 ? (
+        <div>
+          Your votes on the following referendas will be removed:{" "}
+          {votesRemoved.join(", ")}.
+        </div>
+      ) : null}
+    </>
+  )
 }
 
 export const DelegateAction = () => {
   const chainData = useStateObservable(routeChain$)
   const delegateAccount = useStateObservable(delegateAccount$)
-  const [selectedFrameworks, setSelectedFrameworks] = useState<string[]>([
-    "react",
-    "angular",
-  ])
-
   return (
     <div className="flex flex-col text-center items-center">
-      <h1 className="text-lg my-5 font-semibold">Delegate</h1>
+      <h1 className="text-lg my-5 font-semibold">
+        Delegate on {chainData} to {delegateAccount}
+      </h1>
       <div className="flex flex-col text-left  border-[1px] border-gray-200 rounded-lg p-5">
-        <h2 className="text-lg font-semibold">H2 INFO</h2>
-        <div className="flex flex-row justify-between gap-2">
-          Chain: <div className="text-right">{chainData ?? "NOT DEFINED"}</div>
-        </div>
-        <div className="flex flex-row justify-between gap-2">
-          Delegate Account:
-          <div className="text-right">{delegateAccount ?? "NOT DEFINED"}</div>
-        </div>
         <Subscribe fallback={<div>Loading...</div>}>
           <AmountInput />
           <ConvictionInput />
-          <MultiSelect
-            options={frameworksList}
-            onValueChange={setSelectedFrameworks}
-            defaultValue={selectedFrameworks}
-            placeholder="Select tracks"
-            variant="inverted"
-            animation={2}
-            maxCount={3}
-          />
+          <SelectTracks />
+          <Warnings />
+          <Delegate />
         </Subscribe>
       </div>
     </div>
