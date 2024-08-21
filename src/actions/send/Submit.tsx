@@ -110,7 +110,7 @@ export default function Submit() {
       ) : (
         <>
           <button
-            className={`rounded mb-10 bg-pink p-2 text-white w-40 ${isSigning ? "opacity-80" : ""}`}
+            className={`rounded mb-10 bg-pink p-2 text-white w-40 ${isSigning ? "opacity-50" : ""}`}
             disabled={isSigning}
             onClick={submitTransfer$}
           >

@@ -1,7 +1,7 @@
 import { AccountSelector } from "@/AccountSelector.tsx"
 import { ChainId } from "@/api/allChains.ts"
 import { SupportedTokens, tokenDecimals } from "@/services/balances.ts"
-import { truncateAddress } from "@/utils/address.ts"
+import { truncateString } from "@/utils/address.ts"
 import { Field, Label, Radio, RadioGroup } from "@headlessui/react"
 import { state, useStateObservable } from "@react-rxjs/core"
 import { merge } from "rxjs"
@@ -17,9 +17,13 @@ import {
   selectedRoute$,
   senderChainId$,
   token$,
+  TransactionStatus,
   transferAmount$,
+  transferStatus$,
 } from "./send"
 import Submit from "./Submit"
+import SendSummary from "./SendSummary.tsx"
+import { selectedAccount$ } from "@/services/accounts.ts"
 
 state(
   merge(
@@ -37,6 +41,9 @@ export default function SendAction() {
   const transferAmount = useStateObservable(transferAmount$)
   const recipient = useStateObservable(recipient$)
   const token = useStateObservable(token$)
+  const transferStatus = useStateObservable(transferStatus$)
+  const selectedChain = useStateObservable(senderChainId$)
+  const selectedAccount = useStateObservable(selectedAccount$)
   const info = getSs58AddressInfo(recipient ?? "")
 
   if (!recipientChainData) return "No valid recipient chain"
@@ -46,6 +53,18 @@ export default function SendAction() {
 
   const decimals = tokenDecimals[token as SupportedTokens]
 
+  if (transferStatus?.status === TransactionStatus.Finalized)
+    return (
+      <SendSummary
+        transferAmount={transferAmount}
+        decimals={decimals}
+        currency={token}
+        chainId={selectedChain as ChainId}
+        transferStatus={transferStatus}
+        from={selectedAccount?.address!}
+        to={recipient}
+      />
+    )
   return (
     <div className="flex flex-col text-center items-center ">
       <h1 className="text-lg my-5 font-semibold">Send Tokens</h1>
@@ -62,7 +81,7 @@ export default function SendAction() {
         </div>
         <div className="flex flex-row justify-between">
           Recipient:
-          <div className="text-right">{truncateAddress(recipient ?? "")}</div>
+          <div className="text-right">{truncateString(recipient ?? "")}</div>
         </div>
       </div>
       <div className="flex flex-col min-w-[350px] text-left  border-[1px] border-gray-200 rounded-lg p-5 mb-5">
@@ -72,19 +91,23 @@ export default function SendAction() {
           <AccountSelector />
         </div>
         <div className="font-semibold mt-2">Select a chain</div>
-        <ChainSelector decimals={decimals} token={token} />
+        <ChainSelector
+          decimals={decimals}
+          token={token}
+          selectedChain={selectedChain as ChainId}
+        />
       </div>
       <RouteDisplay />
     </div>
   )
 }
 
-const ChainSelector: React.FC<{ decimals: number; token: SupportedTokens }> = ({
-  decimals,
-  token,
-}) => {
+const ChainSelector: React.FC<{
+  decimals: number
+  token: SupportedTokens
+  selectedChain: ChainId
+}> = ({ decimals, token, selectedChain }) => {
   const balances = useStateObservable(accountsWithSufficientBalance$)
-  const selectedChain = useStateObservable(senderChainId$)
 
   if (balances == null) {
     return <div className="max-w-[300px]">Loading balances...</div>

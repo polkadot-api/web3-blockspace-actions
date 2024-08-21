@@ -311,6 +311,7 @@ export const transferStatus$ = state(
               return {
                 ok: true,
                 status: TransactionStatus.Finalized,
+                txHash: v.txHash,
               }
           }
         }),
@@ -328,3 +329,9 @@ export const transferStatus$ = state(
   ),
   null,
 )
+
+import { Observable } from "rxjs"
+
+type EmittedType<T> = T extends Observable<infer U> ? U : never
+
+export type Transaction = EmittedType<typeof transferStatus$>
