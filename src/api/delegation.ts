@@ -1,5 +1,5 @@
-import { Enum, SS58String } from "polkadot-api"
-import { polkadotApi as api } from "./"
+import { Binary, Enum, SS58String } from "polkadot-api"
+import { polkadotApi as api, polkadotPeopleApi } from "./"
 import { MultiAddress, VotingConviction } from "@polkadot-api/descriptors"
 
 export const getOptimalAmount = async (
@@ -96,6 +96,12 @@ export const getTrackInfo = async (
             },
       ]),
   )
+}
+
+export const getAddressName = async (addr: string): Promise<string> => {
+  const id = await polkadotPeopleApi.query.Identity.IdentityOf.getValue(addr)
+  if (id == null || id[0].info.display.value == null) return addr
+  return id[0].info.display.value.asText()
 }
 
 export const delegate = async (

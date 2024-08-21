@@ -101,7 +101,7 @@ const [convictionInput$, onConvictionInputChanges] = createSignal<
 >()
 const conviction$: StateObservable<0 | 1 | 2 | 3 | 4 | 5 | 6 | SUSPENSE> =
   state(
-    combineLatest(routeChain$, delegateAccount$, selectedAccount$).pipe(
+    combineLatest([routeChain$, routeDelegateAccount$, selectedAccount$]).pipe(
       switchMapSuspended(([, , account]) => {
         if (!account) return EMPTY
         return concat(
