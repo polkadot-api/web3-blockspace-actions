@@ -40,7 +40,7 @@ jobs:
       - name: Install deps
         run: pnpm install
       - name: Build
-        run: pnpm build
+        run: VITE_BASE_NAME="web3-blockspace-actions" pnpm build
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
