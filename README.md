@@ -1,50 +1,33 @@
-# React + TypeScript + Vite
+# PAPI Actions
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is a proof-of-concept for an intent system to simplify common use cases when interacting with blockchains.
 
-Currently, two official plugins are available:
+This will be a series of intents, a routing system that uniquely identifies one action to be performed, which can be implemented by dApps or extensions.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The idea is that anyone can "Create an action", which is serialised into a route, and then this route can be shared to other peers. A dApp implementation that supports that intent can then perform the action based on the user's state.
 
-## Expanding the ESLint configuration
+As an example, the `send` action defines the intent of sending a specified amount of a specific token to an address of a chain, through the route `/send/${chain}/${address}?amount=${amount}&token=${token}`.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+When a user opens this route with a dApp that supports this intent, the dApp should look at the user's accounts, find where it has balances throughout the addresses and offer the user the choice of where the tokens should come from. It can then hide all the complexity of whether the `send` action is executed as a `Balances.transfer_keep_alive`, `XcmPallet.teleport_assets` or `XcmPallet.reserve_transfer_assets`, as it's not necessarily something a user needs to be familiar with in order to complete the action.
 
-- Configure the top-level `parserOptions` property like this:
+The intent system is completely independent from the dApp implementation though. There could be dApps that target more technically-experienced users, and dApps which are more user-friendly.
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Getting started
+
+To run the demo of this PoC, you need NodeJS and pnpm installed, then run the following commands:
+
+```sh
+pnpm i
+pnpm vite dev
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+You can now open the address vite is listening with your browser of choice. You can set the route in the URL for some example actions:
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+- Send 3 WND to a `westend` account: `/send/westend/5FxrUu1PUugUYs6HQ83bDswjGLyHYTEzm7yqmrkKVPaYe71Y?amount=3&token=WND`
+- Delegate vote to an account in `polkadot`: `/delegate/polkadot/13EyMuuDHwtq5RD6w3psCJ9WvJFZzDDion6Fd2FVAqxz1g7K`
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+You can also create your own actions from the landing page of the dApp.
+
+## License
+
+MIT - Refer to [LICENSE](https://github.com/polkadot-api/web3-blockspace-actions/blob/main/LICENSE.md)

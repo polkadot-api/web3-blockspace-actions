@@ -16,6 +16,7 @@ import {
   catchError,
   combineLatest,
   defer,
+  EMPTY,
   filter,
   map,
   materialize,
@@ -215,7 +216,14 @@ export const feeEstimation$ = state(
                     .tx(recipient, transferAmount)
                     .getEstimatedFees(selectedAccount.address),
                 ),
-              ).pipe(map((v) => v.reduce((a, b) => a + b, 0n)))
+              ).pipe(
+                map((v) => v.reduce((a, b) => a + b, 0n)),
+                catchError((e) => {
+                  console.error(e)
+                  errorToast("Error when getting estimated fees: " + e.message)
+                  return EMPTY
+                }),
+              )
             : [null]
         },
       ),

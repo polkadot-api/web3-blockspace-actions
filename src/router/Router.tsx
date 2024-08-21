@@ -6,7 +6,7 @@ const HistoryRouter = unstable_HistoryRouter
 export const Router: FCC = (props) => (
   <HistoryRouter
     history={history}
-    basename={import.meta.env.VITE_BASE_NAME}
+    basename={import.meta.env.BASE_URL}
     {...props}
   />
 )
