@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import { Link, Route, Routes } from "react-router-dom"
-import { CreateSend, Send } from "./actions"
+import { CreateSend, Delegate, Send } from "./actions"
 import { Header } from "./Header"
 
 function App() {
@@ -12,6 +12,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/createAction/send" element={<CreateSend />} />
           <Route path="/send/*" element={<Send />} />
+          <Route path="/delegate/*" element={<Delegate />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

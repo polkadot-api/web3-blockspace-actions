@@ -1,11 +1,12 @@
-import { SS58String } from "polkadot-api"
-import { polkadotApi as paseoApi } from "./"
+import { Enum, SS58String } from "polkadot-api"
+import { polkadotApi as api, polkadotPeopleApi } from "./"
 import { MultiAddress, VotingConviction } from "@polkadot-api/descriptors"
 
 export const getOptimalAmount = async (
   account: SS58String,
   at: string = "best",
-) => (await paseoApi.query.Staking.Ledger.getValue(account, { at }))?.active
+): Promise<bigint | undefined> =>
+  (await api.query.Staking.Ledger.getValue(account, { at }))?.active
 
 interface Casting {
   type: "Casting"
@@ -19,9 +20,46 @@ interface Delegating {
   conviction: VotingConviction
 }
 
+export const getTimeLocks = async (): Promise<string[]> => {
+  const [blockTimeSeconds, lockedBlocks] = await Promise.all([
+    api.constants.Babe.ExpectedBlockTime(),
+    api.constants.ConvictionVoting.VoteLockingPeriod(),
+  ]).then(([milis, locked]) => [Number(milis / 1000n), locked])
+
+  return Array(7)
+    .fill(null)
+    .map((_, conviction) => {
+      if (conviction === 0) return "No lock"
+      const hoursToUnlock = Math.ceil(
+        (blockTimeSeconds * lockedBlocks * 2 ** (conviction - 1)) / 60 / 60,
+      )
+      const hoursToPrint = hoursToUnlock % 24
+      const daysToPrint = ((hoursToUnlock - hoursToPrint) / 24) % 7
+      const weeksToPrint =
+        (hoursToUnlock - hoursToPrint - daysToPrint * 24) / 24 / 7
+      let returnStr = ""
+      let started = false
+      if (weeksToPrint) {
+        started = true
+        returnStr += `${weeksToPrint} week${weeksToPrint > 1 ? "s" : ""}`
+      }
+      if (daysToPrint) {
+        if (started) returnStr += `, `
+        else started = true
+        returnStr += `${daysToPrint} days`
+      }
+      if (hoursToPrint) {
+        if (started) returnStr += `, `
+        else started = true
+        returnStr += `${hoursToPrint} hours`
+      }
+      return returnStr
+    })
+}
+
 export const getTracks = async (): Promise<Record<number, string>> =>
   Object.fromEntries(
-    (await paseoApi.constants.Referenda.Tracks()).map(([trackId, { name }]) => [
+    (await api.constants.Referenda.Tracks()).map(([trackId, { name }]) => [
       trackId,
       name
         .split("_")
@@ -30,11 +68,11 @@ export const getTracks = async (): Promise<Record<number, string>> =>
     ]),
   )
 
-const getTrackInfo = async (
+export const getTrackInfo = async (
   address: SS58String,
 ): Promise<Record<number, Casting | Delegating>> => {
   const convictionVoting =
-    await paseoApi.query.ConvictionVoting.VotingFor.getEntries(address)
+    await api.query.ConvictionVoting.VotingFor.getEntries(address)
 
   return Object.fromEntries(
     convictionVoting
@@ -60,19 +98,25 @@ const getTrackInfo = async (
   )
 }
 
+export const getAddressName = async (addr: string): Promise<string> => {
+  const id = await polkadotPeopleApi.query.Identity.IdentityOf.getValue(addr)
+  if (id == null || id[0].info.display.value == null) return addr
+  return id[0].info.display.value.asText()
+}
+
 export const delegate = async (
   from: SS58String,
   target: SS58String,
-  conviction: VotingConviction,
+  conviction: VotingConviction["type"],
   amount: bigint,
   tracks: Array<number>,
 ) => {
   const tracksInfo = await getTrackInfo(from)
 
   const txs: Array<
-    | ReturnType<typeof paseoApi.tx.ConvictionVoting.remove_vote>
-    | ReturnType<typeof paseoApi.tx.ConvictionVoting.undelegate>
-    | ReturnType<typeof paseoApi.tx.ConvictionVoting.delegate>
+    | ReturnType<typeof api.tx.ConvictionVoting.remove_vote>
+    | ReturnType<typeof api.tx.ConvictionVoting.undelegate>
+    | ReturnType<typeof api.tx.ConvictionVoting.delegate>
   > = []
   tracks.forEach((trackId) => {
     const trackInfo = tracksInfo[trackId]
@@ -81,7 +125,7 @@ export const delegate = async (
       if (
         trackInfo.type === "Delegating" &&
         trackInfo.target === target &&
-        conviction.type === trackInfo.conviction.type &&
+        conviction === trackInfo.conviction.type &&
         amount === trackInfo.amount
       )
         return
@@ -89,7 +133,7 @@ export const delegate = async (
       if (trackInfo.type === "Casting") {
         trackInfo.referendums.forEach((index) => {
           txs.push(
-            paseoApi.tx.ConvictionVoting.remove_vote({
+            api.tx.ConvictionVoting.remove_vote({
               class: trackId,
               index,
             }),
@@ -97,23 +141,28 @@ export const delegate = async (
         })
       } else
         txs.push(
-          paseoApi.tx.ConvictionVoting.undelegate({
+          api.tx.ConvictionVoting.undelegate({
             class: trackId,
           }),
         )
     }
 
     txs.push(
-      paseoApi.tx.ConvictionVoting.delegate({
+      api.tx.ConvictionVoting.delegate({
         class: trackId,
-        conviction,
+        conviction: Enum(conviction),
         to: MultiAddress.Id(target),
         balance: amount,
       }),
     )
   })
 
-  return paseoApi.tx.Utility.batch_all({
+  return api.tx.Utility.batch_all({
     calls: txs.map((tx) => tx.decodedCall),
   })
+}
+
+export const getMaxDelegation = async (from: SS58String) => {
+  const { data: account } = await api.query.System.Account.getValue(from)
+  return account.free + account.reserved
 }
