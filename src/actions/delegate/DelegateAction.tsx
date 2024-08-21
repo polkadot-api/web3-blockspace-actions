@@ -5,7 +5,7 @@ import {
   SUSPENSE,
   useStateObservable,
 } from "@react-rxjs/core"
-import { routeChain$, delegateAccount$ } from "./delegate"
+import { routeChain$, routeDelegateAccount$ } from "./delegate"
 import {
   combineLatest,
   concat,
@@ -41,7 +41,7 @@ const optimalAmount$ = state((account: SS58String) =>
   from(getOptimalAmount(account)),
 )
 const amount$ = state(
-  combineLatest([routeChain$, delegateAccount$, selectedAccount$]).pipe(
+  combineLatest([routeChain$, routeDelegateAccount$, selectedAccount$]).pipe(
     switchMapSuspended(([, , account]) => {
       if (!account) return EMPTY
       return concat(
@@ -171,7 +171,7 @@ const SelectTracks: React.FC = () => {
 const delegateInput$ = state(
   combineLatest([
     selectedAccount$,
-    delegateAccount$,
+    routeDelegateAccount$,
     conviction$.pipe(map((x) => (x === SUSPENSE ? null : x))),
     amount$.pipe(map((x) => (x === SUSPENSE ? null : x))),
     concat(
@@ -267,7 +267,7 @@ const Warnings: React.FC = () => {
 
 export const DelegateAction = () => {
   const chainData = useStateObservable(routeChain$)
-  const delegateAccount = useStateObservable(delegateAccount$)
+  const delegateAccount = useStateObservable(routeDelegateAccount$)
   return (
     <div className="flex flex-col text-center items-center">
       <h1 className="text-lg my-5 font-semibold">
