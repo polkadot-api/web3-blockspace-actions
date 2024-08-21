@@ -5,7 +5,8 @@ import { truncateAddress } from "@/utils/address.ts"
 import { Field, Label, Radio, RadioGroup } from "@headlessui/react"
 import { state, useStateObservable } from "@react-rxjs/core"
 import { merge } from "rxjs"
-import { formatCurrencyWithSymbol } from "../../utils/format-currency.ts"
+import { formatCurrencyWithSymbol } from "@/utils/format-currency.ts"
+import { getSs58AddressInfo } from "polkadot-api"
 
 import {
   accountsWithSufficientBalance$,
@@ -36,10 +37,11 @@ export default function SendAction() {
   const transferAmount = useStateObservable(transferAmount$)
   const recipient = useStateObservable(recipient$)
   const token = useStateObservable(token$)
+  const info = getSs58AddressInfo(recipient ?? "")
 
   if (!recipientChainData) return "No valid recipient chain"
   if (!transferAmount) return "Specify Transfer Amount"
-  if (!recipient) return "No valid recipient"
+  if (!recipient || !info.isValid) return "No valid recipient"
   if (!token) return "No valid token"
 
   const decimals = tokenDecimals[token as SupportedTokens]

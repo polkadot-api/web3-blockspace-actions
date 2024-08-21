@@ -18,6 +18,8 @@ const chains$ = state(
 )
 const chainCurrencies: Partial<Record<ChainId, SupportedTokens[]>> = {
   polkadotAssetHub: ["USDC", "USDT"],
+  rococoAssetHub: ["WND"],
+  westendAssetHub: ["ROC"],
 }
 
 const [chainSelected$, selectChain] = createSignal<ChainId | null>()
