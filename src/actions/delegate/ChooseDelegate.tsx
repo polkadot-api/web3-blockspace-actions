@@ -6,11 +6,11 @@ import { isChainValid } from "./utils"
 const SUPPORTED_DELEGATES: Array<{ address: string; name: string }> = [
   {
     name: "BIRDO",
-    address: "13EyMuuDHwtq5RD6w3psCJ9WvJFZzDDion6Fd2FVAqxz1g7K",
+    address: "12s37eSMQPEN5cuVyBxk2UypUHntwumqBHy7sJkoKpZ1v3HV",
   },
   {
     name: "ChaosDAO",
-    address: "12s37eSMQPEN5cuVyBxk2UypUHntwumqBHy7sJkoKpZ1v3HV",
+    address: "13EyMuuDHwtq5RD6w3psCJ9WvJFZzDDion6Fd2FVAqxz1g7K",
   },
 ]
 

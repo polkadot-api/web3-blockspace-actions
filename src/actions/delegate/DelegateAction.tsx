@@ -14,12 +14,14 @@ import {
   from,
   map,
   of,
+  startWith,
   switchMap,
   take,
 } from "rxjs"
 import { createSignal, switchMapSuspended } from "@react-rxjs/utils"
 import {
   delegate,
+  getAddressName,
   getMaxDelegation,
   getOptimalAmount,
   getTimeLocks,
@@ -265,9 +267,15 @@ const Warnings: React.FC = () => {
   )
 }
 
+const delegateName$ = routeDelegateAccount$.pipeState(
+  switchMap((x) => (x ? getAddressName(x) : EMPTY)),
+  startWith(""),
+)
+delegateName$.subscribe()
+
 export const DelegateAction = () => {
   const chainData = useStateObservable(routeChain$)
-  const delegateAccount = useStateObservable(routeDelegateAccount$)
+  const delegateAccount = useStateObservable(delegateName$)
   return (
     <div className="flex flex-col text-center items-center">
       <h1 className="text-lg my-5 font-semibold">
