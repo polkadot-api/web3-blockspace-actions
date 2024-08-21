@@ -11,7 +11,7 @@ import {
   selectedExtension$,
   selectExtension,
 } from "./services/accounts"
-import { truncateAddress } from "./utils/address"
+import { truncateString } from "./utils/address"
 
 const [openChange$, setAccountPickerOpen] = createSignal<boolean>()
 // eslint-disable-next-line react-refresh/only-export-components
@@ -38,7 +38,7 @@ export const AccountSelector: React.FC = () => {
       >
         {selectedAccount
           ? (selectedAccount.name ??
-            truncateAddress(selectedAccount.address, 16))
+            truncateString(selectedAccount.address, 16))
           : "Select your account"}
       </button>
       {useStateObservable(pickerOpen$) ? <AccountPickerModal /> : null}
@@ -137,7 +137,7 @@ const AccountPicker = () => {
               }}
             >
               <span className="font-bold">{account.name}</span>
-              <span>{truncateAddress(account.address, 16)}</span>
+              <span>{truncateString(account.address, 16)}</span>
             </button>
           </li>
         ))}
