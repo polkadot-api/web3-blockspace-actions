@@ -251,6 +251,9 @@ const Warnings: React.FC = () => {
   const { undelegations, votesRemoved } = useStateObservable(warnings$)
   return (
     <>
+      {Object.keys(undelegations).length > 0 || votesRemoved.length > 0 ? (
+        <h2 className="mt-4 font-bold">Warnings: </h2>
+      ) : null}
       {Object.entries(undelegations).map(([address, tracks]) => (
         <div>
           You will stop delegating to {shortStr(4, address)} on the following
