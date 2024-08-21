@@ -22,25 +22,27 @@ function App() {
 
 const LandingPage = () => (
   <div className="p-2 leading-loose">
-    <h1 className="text-center font-bold text-2xl text-[#ff007b]">
-      PAPI Actions
+    <h1 className="text-center font-bold text-2xl text-[#ff007b] mb-5">
+      Polkadot Actions
     </h1>
     <p className="text-slate-800">
       Create intents to simplify common actions for users.
     </p>
     <p className="">Select the action you want to create:</p>
-    <ul className="px-2">
+    <ul className="px-2 list-disc text-pink ">
       <li>
-        <Link className="text-[#ff007b]" to="/createAction/send">
+        <Link className="font-semibold underline" to="/createAction/send">
           Send
         </Link>
-        : Action to send tokens to a predefined address.
+        <span className="text-black">
+          : Action to send tokens to a predefined address.
+        </span>
       </li>
       <li>
-        <Link className="text-[#ff007b]" to="/delegate">
+        <Link className="font-semibold underline" to="/delegate">
           Delegate
         </Link>
-        : Action to set up vote delegation.
+        <span className="text-black">: Action to set up vote delegation.</span>
       </li>
     </ul>
   </div>
