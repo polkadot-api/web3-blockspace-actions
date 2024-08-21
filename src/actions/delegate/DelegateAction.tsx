@@ -212,7 +212,8 @@ const delegateInput$ = state(
     switchMap((x) => {
       if (x === null) return of(null)
       const [from, target, conviction, amount, tracks, maxDelegation] = x
-      if (tracks.length === 0 || amount > maxDelegation) return of(null)
+      if (tracks.length === 0 || amount === 0n || amount > maxDelegation)
+        return of(null)
       return concat(
         of(null),
         delegate(from, target, convictionVotes[conviction], amount, tracks),
