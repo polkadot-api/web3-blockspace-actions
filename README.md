@@ -30,4 +30,4 @@ You can also create your own actions from the landing page of the dApp.
 
 ## License
 
-MIT - Refer to [LICENSE](https://github.com/polkadot-api/web3-blockspace-actions/blob/main/LICENSE)
+MIT - Refer to [LICENSE](https://github.com/polkadot-api/web3-blockspace-actions/blob/main/LICENSE.md)
