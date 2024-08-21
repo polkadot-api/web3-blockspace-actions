@@ -222,7 +222,7 @@ const chains: RelayChain[] = [
                 parents: 2,
                 interior: XcmV3Junctions.X1(
                   XcmV3Junction.GlobalConsensus(
-                    XcmV3JunctionNetworkId.Westend(),
+                    XcmV3JunctionNetworkId.Rococo(),
                   ),
                 ),
               },
@@ -404,26 +404,29 @@ type Exploring = {
   route: Route
   visited: Set<ChainId>
 }
+const routeCache: Record<string, Route> = {}
+const routeKey = (from: ChainId, to: ChainId, token: SupportedTokens) =>
+  `${from}-${to}-${token}`
 export function findRoute(
   from: ChainId,
   to: ChainId,
   token: SupportedTokens,
 ): Route | null {
   // Direct shortcuts
-  if (
-    !(token in predefinedTransfers[from][from]) ||
-    !(token in predefinedTransfers[to][to])
-  )
-    return null
   if (from === to) {
-    return [
-      {
-        from,
-        to,
-        tx: predefinedTransfers[from][to][token]!,
-      },
-    ]
+    return token in predefinedTransfers[from][to]
+      ? [
+          {
+            from,
+            to,
+            tx: predefinedTransfers[from][to][token]!,
+          },
+        ]
+      : null
   }
+
+  const key = routeKey(from, to, token)
+  if (routeCache[key]) return routeCache[key]
 
   let exploring: Array<Exploring> = [
     {
