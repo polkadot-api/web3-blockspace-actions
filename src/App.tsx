@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import { Link, Route, Routes } from "react-router-dom"
-import { Delegate, Send, Void } from "./actions"
+import { CreateSend, Delegate, Send } from "./actions"
 import { Header } from "./Header"
 
 function App() {

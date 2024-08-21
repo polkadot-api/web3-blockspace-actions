@@ -1,4 +1,4 @@
-import { Binary, Enum, SS58String } from "polkadot-api"
+import { Enum, SS58String } from "polkadot-api"
 import { polkadotApi as api, polkadotPeopleApi } from "./"
 import { MultiAddress, VotingConviction } from "@polkadot-api/descriptors"
 
