@@ -37,7 +37,7 @@ const LandingPage = () => (
         : Action to send tokens to a predefined address.
       </li>
       <li>
-        <Link className="text-[#ff007b]" to="/createAction/delegate">
+        <Link className="text-[#ff007b]" to="/delegate">
           Delegate
         </Link>
         : Action to set up vote delegation.
