@@ -173,12 +173,14 @@ export const FeesAndSubmit: React.FC<
           </span>
         </li>
       </ul>
-      <SubmitDialog
-        signSubmitAndWatch={signSubmitAndWatch}
-        signer={account.polkadotSigner}
-      >
-        {children}
-      </SubmitDialog>
+      {txCall ? (
+        <SubmitDialog
+          signSubmitAndWatch={signSubmitAndWatch}
+          signer={account.polkadotSigner}
+        >
+          {children}
+        </SubmitDialog>
+      ) : null}
     </>
   )
 }

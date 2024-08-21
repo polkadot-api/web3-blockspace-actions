@@ -183,24 +183,36 @@ const delegateInput$ = state(
       ),
       selectedTrackInput$,
     ).pipe(map((x) => x.map((y) => parseInt(y, 10)))),
+    maxDelegation$,
   ]).pipe(
-    map(([selectedAccount, delegateAccount, conviction, amount, tracks]) => {
-      return !selectedAccount ||
-        !delegateAccount ||
-        conviction == null ||
-        amount == null
-        ? null
-        : ([
-            selectedAccount.address,
-            delegateAccount,
-            conviction,
-            amount,
-            tracks,
-          ] as const)
-    }),
+    map(
+      ([
+        selectedAccount,
+        delegateAccount,
+        conviction,
+        amount,
+        tracks,
+        maxDelegation,
+      ]) => {
+        return !selectedAccount ||
+          !delegateAccount ||
+          conviction == null ||
+          amount == null
+          ? null
+          : ([
+              selectedAccount.address,
+              delegateAccount,
+              conviction,
+              amount,
+              tracks,
+              maxDelegation,
+            ] as const)
+      },
+    ),
     switchMap((x) => {
       if (x === null) return of(null)
-      const [from, target, conviction, amount, tracks] = x
+      const [from, target, conviction, amount, tracks, maxDelegation] = x
+      if (tracks.length === 0 || amount > maxDelegation) return of(null)
       return concat(
         of(null),
         delegate(from, target, convictionVotes[conviction], amount, tracks),
