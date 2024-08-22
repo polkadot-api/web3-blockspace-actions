@@ -23,7 +23,7 @@ function App() {
 const LandingPage = () => (
   <div className="p-2 leading-loose">
     <h1 className="text-center font-bold text-2xl text-[#ff007b] mb-5">
-      Polkadot Actions
+      Papi Actions
     </h1>
     <p className="text-slate-800">
       Create intents to simplify common actions for users.
