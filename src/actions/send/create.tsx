@@ -90,11 +90,15 @@ export default function CreateSend() {
     )
   }
 
+  const generatedUrl =
+    !disabled &&
+    `/send/${selectedChain}/${address}?amount=${formatValue(amount, tokenDecimals[selectedCurrency], false)}&token=${selectedCurrency}`
+
   return (
     <div className="flex flex-col text-center items-center ">
       <h1 className="text-lg my-5 font-semibold">Create Send Action</h1>
       <form
-        className="flex flex-col gap-2 min-w-[350px] text-left  border-[1px] border-gray-200 rounded-lg p-5 mb-5"
+        className="flex flex-col gap-2 min-w-[350px] max-w-[400px] text-left  border-[1px] border-gray-200 rounded-lg p-5 mb-5"
         onSubmit={handleSubmit}
       >
         <label className="flex flex-row justify-between items-center gap-2">
