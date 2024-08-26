@@ -89,11 +89,7 @@ export default function CreateSend() {
       `/send/${selectedChain}/${address}?amount=${formatValue(amount, tokenDecimals[selectedCurrency], false)}&token=${selectedCurrency}`,
     )
   }
-
-  const generatedUrl =
-    !disabled &&
-    `/send/${selectedChain}/${address}?amount=${formatValue(amount, tokenDecimals[selectedCurrency], false)}&token=${selectedCurrency}`
-
+  
   return (
     <div className="flex flex-col text-center items-center ">
       <h1 className="text-lg my-5 font-semibold">Create Send Action</h1>
