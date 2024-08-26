@@ -1,16 +1,12 @@
 import { AccountSelector } from "@/components/AccountSelector.tsx"
-import { ChainId } from "@/api/allChains.ts"
 import { SupportedTokens, tokenDecimals } from "@/services/balances.ts"
 import { truncateString } from "@/utils/string"
-import { Field, Label, Radio, RadioGroup } from "@headlessui/react"
 import { state, useStateObservable } from "@react-rxjs/core"
 import { merge } from "rxjs"
 import { formatCurrencyWithSymbol } from "@/utils/format-currency.ts"
-
+import { ChainSelector } from "./ChainSelector.tsx"
 import {
   accountsWithSufficientBalance$,
-  changeSenderChainId$,
-  feeEstimation$,
   recipient$,
   recipientChainData$,
   selectedRoute$,
@@ -78,90 +74,6 @@ export default function SendAction() {
         <ChainSelector decimals={decimals} token={token} />
       </div>
       <RouteDisplay />
-    </div>
-  )
-}
-
-const ChainSelector: React.FC<{
-  decimals: number
-  token: SupportedTokens
-}> = ({ decimals, token }) => {
-  const balances = useStateObservable(accountsWithSufficientBalance$)
-  const selectedChain = useStateObservable(senderChainId$)
-
-  if (balances == null) {
-    return <div className="max-w-[300px]">Loading balances...</div>
-  }
-
-  if (balances.length === 0)
-    return (
-      <div className="max-w-[300px] text-destructive mt-3 text-sm">
-        The selected address doesn't have any suitable accounts with sufficient
-        balance. Please choose a different address.
-      </div>
-    )
-  return (
-    <>
-      <div className="font-semibold mt-2">Select a chain</div>
-      <RadioGroup
-        value={selectedChain}
-        onChange={(chainId: ChainId) => changeSenderChainId$(chainId)}
-        aria-label="Sender chain"
-      >
-        {balances.map((balance) => (
-          <Field key={balance.chain.id} className="flex items-center gap-2">
-            <Radio
-              value={balance.chain.id}
-              className="group flex size-5 items-center justify-center rounded-full border bg-white data-[checked]:bg-blue-400"
-            >
-              <span className="invisible size-2 rounded-full bg-white group-data-[checked]:visible" />
-            </Radio>
-            <Label>
-              <div className="flex flex-row gap-5 items-start pt-5">
-                <h3 className="font-semibold">{balance.chain.id}</h3>
-                <div className="flex flex-col">
-                  <div className="flex flex-row justify-between">
-                    <div>Balance: </div>
-                    <div className="text-right ml-2">
-                      {formatCurrencyWithSymbol(
-                        balance.transferable,
-                        decimals,
-                        token,
-                        {
-                          nDecimals: 4,
-                        },
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-row justify-between">
-                    <div className="mr-2">Estimated fee:</div>{" "}
-                    <Fee
-                      chainId={balance.chain.id}
-                      decimals={decimals}
-                      token={token}
-                    />
-                  </div>
-                </div>
-              </div>
-            </Label>
-          </Field>
-        ))}
-      </RadioGroup>
-    </>
-  )
-}
-
-const Fee: React.FC<{
-  chainId: ChainId
-  decimals: number
-  token: SupportedTokens
-}> = ({ chainId, decimals, token }) => {
-  const feeEstimation = useStateObservable(feeEstimation$(chainId))
-  return (
-    <div>
-      {formatCurrencyWithSymbol(feeEstimation, decimals, token, {
-        nDecimals: 4,
-      })}
     </div>
   )
 }
