@@ -1,4 +1,4 @@
-import { AccountSelector } from "@/AccountSelector.tsx"
+import { AccountSelector } from "@/components/AccountSelector.tsx"
 import { ChainId } from "@/api/allChains.ts"
 import { SupportedTokens, tokenDecimals } from "@/services/balances.ts"
 import { truncateString } from "@/utils/string"
@@ -6,7 +6,6 @@ import { Field, Label, Radio, RadioGroup } from "@headlessui/react"
 import { state, useStateObservable } from "@react-rxjs/core"
 import { merge } from "rxjs"
 import { formatCurrencyWithSymbol } from "@/utils/format-currency.ts"
-import { getSs58AddressInfo } from "polkadot-api"
 
 import {
   accountsWithSufficientBalance$,
@@ -23,7 +22,6 @@ import {
 } from "./send"
 import Submit from "./Submit"
 import SendSummary from "./SendSummary.tsx"
-import { selectedAccount$ } from "@/services/accounts.ts"
 
 state(
   merge(
@@ -38,33 +36,20 @@ state(
 
 export default function SendAction() {
   const recipientChainData = useStateObservable(recipientChainData$)
-  const transferAmount = useStateObservable(transferAmount$)
   const recipient = useStateObservable(recipient$)
+  const transferAmount = useStateObservable(transferAmount$)
   const token = useStateObservable(token$)
   const transferStatus = useStateObservable(transferStatus$)
-  const selectedChain = useStateObservable(senderChainId$)
-  const selectedAccount = useStateObservable(selectedAccount$)
-  const info = getSs58AddressInfo(recipient ?? "")
 
   if (!recipientChainData) return "No valid recipient chain"
   if (!transferAmount) return "Specify Transfer Amount"
-  if (!recipient || !info.isValid) return "No valid recipient"
+  if (!recipient) return "No valid recipient"
   if (!token) return "No valid token"
 
   const decimals = tokenDecimals[token as SupportedTokens]
 
   if (transferStatus?.status === TransactionStatus.Finalized)
-    return (
-      <SendSummary
-        transferAmount={transferAmount}
-        decimals={decimals}
-        currency={token}
-        chainId={selectedChain as ChainId}
-        transferStatus={transferStatus}
-        from={selectedAccount?.address!}
-        to={recipient}
-      />
-    )
+    return <SendSummary />
   return (
     <div className="flex flex-col text-center items-center ">
       <h1 className="text-lg my-5 font-semibold">Send Tokens</h1>
@@ -90,12 +75,7 @@ export default function SendAction() {
           Account:
           <AccountSelector />
         </div>
-        <div className="font-semibold mt-2">Select a chain</div>
-        <ChainSelector
-          decimals={decimals}
-          token={token}
-          selectedChain={selectedChain as ChainId}
-        />
+        <ChainSelector decimals={decimals} token={token} />
       </div>
       <RouteDisplay />
     </div>
@@ -105,9 +85,9 @@ export default function SendAction() {
 const ChainSelector: React.FC<{
   decimals: number
   token: SupportedTokens
-  selectedChain: ChainId
-}> = ({ decimals, token, selectedChain }) => {
+}> = ({ decimals, token }) => {
   const balances = useStateObservable(accountsWithSufficientBalance$)
+  const selectedChain = useStateObservable(senderChainId$)
 
   if (balances == null) {
     return <div className="max-w-[300px]">Loading balances...</div>
@@ -115,13 +95,14 @@ const ChainSelector: React.FC<{
 
   if (balances.length === 0)
     return (
-      <div className="max-w-[300px]">
-        The selected address doesn't have suitable accounts with sufficient
-        balance.
+      <div className="max-w-[300px] text-destructive mt-3 text-sm">
+        The selected address doesn't have any suitable accounts with sufficient
+        balance. Please choose a different address.
       </div>
     )
   return (
     <>
+      <div className="font-semibold mt-2">Select a chain</div>
       <RadioGroup
         value={selectedChain}
         onChange={(chainId: ChainId) => changeSenderChainId$(chainId)}

@@ -10,8 +10,8 @@ import {
   selectedAccount$,
   selectedExtension$,
   selectExtension,
-} from "./services/accounts"
-import { truncateString } from "./utils/string"
+} from "../services/accounts"
+import { truncateString } from "../utils/string"
 
 const [openChange$, setAccountPickerOpen] = createSignal<boolean>()
 // eslint-disable-next-line react-refresh/only-export-components
@@ -31,7 +31,7 @@ export const AccountSelector: React.FC = () => {
     <div>
       <button
         className={twMerge(
-          "border border-pink rounded-full px-4 hover:bg-pink hover:text-white",
+          "border border-pink rounded-full px-4 text-pink hover:bg-pink hover:text-white",
           buttonStyles,
         )}
         onClick={() => setAccountPickerOpen(true)}

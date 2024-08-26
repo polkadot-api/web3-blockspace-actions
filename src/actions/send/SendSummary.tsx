@@ -1,46 +1,54 @@
-import { TransactionStatus, Transaction } from "./send"
+import { TransactionStatus } from "./send"
 import { ChainId } from "@/api"
 import { truncateString } from "@/utils/string"
-import { SupportedTokens } from "@/services/balances"
+import { SupportedTokens, tokenDecimals } from "@/services/balances"
 import { formatCurrencyWithSymbol } from "@/utils/format-currency"
-import { HexString, SS58String } from "polkadot-api"
+import { HexString } from "polkadot-api"
 import { allChains } from "@/api"
-export default function SendSummary({
-  transferAmount,
-  decimals,
-  currency,
-  chainId,
-  transferStatus,
-  from,
-  to,
-}: {
-  transferAmount: bigint
-  decimals: number
-  currency: SupportedTokens
-  chainId: ChainId
-  transferStatus: Transaction
-  from: SS58String
-  to: SS58String
-}) {
-  if (
-    transferStatus?.status !== TransactionStatus.Finalized ||
-    !transferStatus?.ok ||
-    !("txHash" in transferStatus)
-  )
-    return null
+
+import { useStateObservable } from "@react-rxjs/core"
+import {
+  transferAmount$,
+  recipient$,
+  token$,
+  transferStatus$,
+  senderChainId$,
+} from "./send"
+import { selectedAccount$ } from "@/services/accounts"
+
+export default function SendSummary() {
+  const transferAmount = useStateObservable(transferAmount$)
+  const transferStatus = useStateObservable(transferStatus$)
+  const to = useStateObservable(recipient$)
+  const token = useStateObservable(token$)
+  const from = useStateObservable(selectedAccount$)
+  const chainId = useStateObservable(senderChainId$)
+
+  const isFinalized =
+    transferStatus &&
+    transferStatus.status === TransactionStatus.Finalized &&
+    transferStatus.ok &&
+    "txHash" in transferStatus
+
+  if (!isFinalized || !token || !from || !to || !chainId) return null
+
   return (
     <div className="flex justify-center">
-      <div className="flex flex-col items-center justify-center border-[1px] border-gray-200 rounded-lg p-5 mb-5 w-fit">
-        <h1 className="text-lg mb-5 font-semibold">Transaction Details</h1>
-        <div>
+      <div className="flex flex-col items-center justify-center ">
+        <h1 className="text-lg my-5 font-semibold">Transaction Details</h1>
+        <div className="border-[1px] border-gray-200 rounded-lg p-5 mb-5 min-w-[250px]">
           <div className="flex flex-row justify-between gap-5">
             <div>Amount:</div>
             <div>
-              {formatCurrencyWithSymbol(transferAmount, decimals, currency)}
+              {formatCurrencyWithSymbol(
+                transferAmount,
+                tokenDecimals[token as SupportedTokens],
+                token,
+              )}
             </div>
           </div>
           <div className="flex flex-row justify-between gap-5">
-            From: <div>{truncateString(from, 8)}</div>
+            From: <div>{truncateString(from.address, 8)}</div>
           </div>
           <div className="flex flex-row justify-between gap-5">
             To: <div>{truncateString(to, 8)}</div>
