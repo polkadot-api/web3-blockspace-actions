@@ -4,9 +4,11 @@ import { TokenInput } from "@/components/TokenInput"
 import { chains, SupportedTokens, tokenDecimals } from "@/services/balances"
 import { state, useStateObservable, withDefault } from "@react-rxjs/core"
 import { createSignal, mergeWithKey } from "@react-rxjs/utils"
+import { getSs58AddressInfo } from "polkadot-api"
 import { useNavigate } from "react-router-dom"
 import { combineLatest, filter, map, merge, scan, take } from "rxjs"
 import { twMerge } from "tailwind-merge"
+import { truncateString } from "@/utils/string"
 
 const chains$ = state(
   combineLatest(
@@ -65,98 +67,57 @@ const [amountChanged$, setAmount] = createSignal<bigint | null>()
 const amount$ = state(amountChanged$, null)
 
 const [addressChanged$, setAddress] = createSignal<string>()
-const address$ = state(addressChanged$, null)
+
+const address$ = state(
+  addressChanged$.pipe(
+    map((address) => ({ ...getSs58AddressInfo(address ?? ""), address })),
+  ),
+  null,
+)
+
+const generatedUrl$ = state(
+  combineLatest([selectedChain$, amount$, selectedCurrency$, address$]).pipe(
+    map(([chain, amount, ccy, address]) => {
+      if (!chain || !amount || !ccy || !address?.isValid) return null
+
+      return `/send/${chain}/${address.address}?amount=${formatValue(amount, tokenDecimals[ccy], false)}&token=${ccy}`
+    }),
+  ),
+  null,
+)
 
 export default function CreateSend() {
-  const chains = useStateObservable(chains$)
   const selectedChain = useStateObservable(selectedChain$)
-  const currencies = useStateObservable(supportedCurrencies$)
-  const selectedCurrency = useStateObservable(selectedCurrency$)
-  const amount = useStateObservable(amount$)
-  const address = useStateObservable(address$)
+  const generatedUrl = useStateObservable(generatedUrl$)
+
   const navigate = useNavigate()
 
   if (!selectedChain) {
-    return "Loading..."
+    return <div>Loading...</div>
   }
 
-  const disabled = !selectedCurrency || !amount || !address
+  const disabled = !generatedUrl
+
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault()
     if (disabled) return
 
-    navigate(
-      `/send/${selectedChain}/${address}?amount=${formatValue(amount, tokenDecimals[selectedCurrency], false)}&token=${selectedCurrency}`,
-    )
+    navigate(generatedUrl)
   }
-
-  const generatedUrl =
-    !disabled &&
-    `/send/${selectedChain}/${address}?amount=${formatValue(amount, tokenDecimals[selectedCurrency], false)}&token=${selectedCurrency}`
 
   return (
     <div className="flex flex-col text-center items-center ">
-      <h1 className="text-lg my-5 font-semibold">Create Send Action</h1>
+      <h1 className="text-lg my-5 font-semibold">Create a Send Action</h1>
       <form
         className="flex flex-col gap-2 min-w-[350px] max-w-[400px] text-left  border-[1px] border-gray-200 rounded-lg p-5 mb-5"
         onSubmit={handleSubmit}
       >
-        <label className="flex flex-row justify-between items-center gap-2">
-          <span>Chain:</span>
-          <select
-            className="border p-2 rounded flex-1"
-            value={selectedChain ?? ""}
-            onChange={(evt) => selectChain(evt.target.value as ChainId)}
-          >
-            {chains.map((chain) => (
-              <option key={chain.id} value={chain.id}>
-                {chain.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectChain />
+        <SelectCurrency />
+        <SelectAmount />
+        <SelectRecipient />
 
-        <label className="flex flex-row justify-between items-center gap-2">
-          <span>Currency:</span>
-          <select
-            className="border p-2 rounded flex-1"
-            value={selectedCurrency ?? ""}
-            onChange={(evt) =>
-              selectCurrency(evt.target.value as SupportedTokens)
-            }
-            disabled={currencies.length <= 1}
-          >
-            {currencies.map((currency) => (
-              <option key={currency} value={currency}>
-                {currency}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex flex-row items-center justify-between gap-2">
-          <span>Amount:</span>
-          {selectedCurrency ? (
-            <TokenInput
-              token={{
-                name: selectedCurrency,
-                decimals: tokenDecimals[selectedCurrency],
-              }}
-              value={amount}
-              onChange={setAmount}
-            />
-          ) : null}
-        </label>
-        <label className="flex flex-row items-center justify-between gap-2">
-          <span>Recipient:</span>
-          <input
-            type="text"
-            className="p-2 border rounded flex-1"
-            placeholder="Enter address..."
-            value={address ?? ""}
-            onChange={(evt) => setAddress(evt.target.value)}
-          />
-        </label>
+        <div>{generatedUrl ? truncateString(generatedUrl, 10) : null}</div>
         <input
           className={twMerge(
             "border p-2 bg-[#ff007b] text-white font-bold cursor-pointer",
@@ -168,5 +129,87 @@ export default function CreateSend() {
         />
       </form>
     </div>
+  )
+}
+
+const SelectChain: React.FC = () => {
+  const selectedChain = useStateObservable(selectedChain$)
+  const chains = useStateObservable(chains$)
+
+  return (
+    <label className="flex flex-row justify-between items-center gap-2">
+      <span>Chain:</span>
+      <select
+        className="border p-2 rounded flex-1"
+        value={selectedChain ?? ""}
+        onChange={(evt) => selectChain(evt.target.value as ChainId)}
+      >
+        {chains.map((chain) => (
+          <option key={chain.id} value={chain.id}>
+            {chain.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+const SelectCurrency: React.FC = () => {
+  const currencies = useStateObservable(supportedCurrencies$)
+  const selectedCurrency = useStateObservable(selectedCurrency$)
+
+  return (
+    <label className="flex flex-row justify-between items-center gap-2">
+      <span>Currency:</span>
+      <select
+        className="border p-2 rounded flex-1"
+        value={selectedCurrency ?? ""}
+        onChange={(evt) => selectCurrency(evt.target.value as SupportedTokens)}
+        disabled={currencies.length <= 1}
+      >
+        {currencies.map((currency) => (
+          <option key={currency} value={currency}>
+            {currency}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+const SelectAmount: React.FC = () => {
+  const amount = useStateObservable(amount$)
+  const selectedCurrency = useStateObservable(selectedCurrency$)
+
+  return (
+    <label className="flex flex-row items-center justify-between gap-2">
+      <span>Amount:</span>
+      {selectedCurrency ? (
+        <TokenInput
+          token={{
+            name: selectedCurrency,
+            decimals: tokenDecimals[selectedCurrency],
+          }}
+          value={amount}
+          onChange={setAmount}
+        />
+      ) : null}
+    </label>
+  )
+}
+
+const SelectRecipient: React.FC = () => {
+  const address = useStateObservable(address$)
+  return (
+    <label className="flex flex-row items-center justify-between gap-2">
+      <span>Recipient:</span>
+      <input
+        type="text"
+        className="p-2 border rounded flex-1"
+        placeholder="Enter address..."
+        value={address?.address}
+        onChange={(evt) => setAddress(evt.target.value)}
+      />
+    </label>
   )
 }
