@@ -3,22 +3,8 @@ import { ChainId } from "@/api"
 import { truncateString } from "@/utils/string"
 import { SupportedTokens } from "@/services/balances"
 import { formatCurrencyWithSymbol } from "@/utils/format-currency"
-import { SS58String } from "polkadot-api"
-type BlockExplorers = {
-  [key in ChainId]: string
-}
-const blockExplorer: BlockExplorers = {
-  polkadot: "https://www.subscan.io/extrinsic/",
-  polkadotAssetHub: "",
-  polkadotBridgeHub: "",
-  polkadotCollectives: "",
-  polkadotPeople: "",
-  rococo: "",
-  rococoAssetHub: "",
-  westend: "https://westend.stg.subscan.io/extrinsic/",
-  westendAssetHub: "",
-}
-
+import { HexString, SS58String } from "polkadot-api"
+import { allChains } from "@/api"
 export default function SendSummary({
   transferAmount,
   decimals,
@@ -64,7 +50,7 @@ export default function SendSummary({
             <a
               className="underline text-pink"
               target="_blank"
-              href={blockExplorer[chainId as ChainId] + transferStatus.txHash}
+              href={transactionUrl(chainId, transferStatus.txHash)}
             >
               {truncateString(transferStatus.txHash!, 8)}
             </a>
@@ -73,4 +59,8 @@ export default function SendSummary({
       </div>
     </div>
   )
+}
+
+const transactionUrl = (chainId: ChainId, txHash: HexString | undefined) => {
+  return allChains[chainId as ChainId].blockExplorer + "extrinsic/" + txHash
 }
