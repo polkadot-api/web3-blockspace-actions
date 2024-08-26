@@ -28,7 +28,11 @@ import {
   rococoAssetHubClient,
 } from "./rococoAssetHub"
 import { decodedWestendSpec, westendApi, westendClient } from "./westend"
-import { decodedWestendAssetHubSpec } from "./westendAssetHub"
+import {
+  decodedWestendAssetHubSpec,
+  westendAssetHubApi,
+  westendAssetHubClient,
+} from "./westendAssetHub"
 
 export interface Chain<T extends ChainDefinition> {
   chainSpec: Promise<ChainSpec>
@@ -88,8 +92,8 @@ export const allChains = {
   },
   westendAssetHub: {
     chainSpec: decodedWestendAssetHubSpec,
-    api: westendApi,
-    client: westendClient,
+    api: westendAssetHubApi,
+    client: westendAssetHubClient,
     blockExplorer: "https://assethub-westend.subscan.io/",
   },
 } satisfies Record<string, Chain<ChainDefinition>>
