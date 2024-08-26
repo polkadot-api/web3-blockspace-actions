@@ -34,8 +34,8 @@ import { TokenInput } from "@/components/TokenInput"
 import { VotingConviction } from "@polkadot-api/descriptors"
 import { MultiSelect } from "@/components/multi-select"
 import { FeesAndSubmit } from "./FeesAndSubmit"
-import { shortStr } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { truncateString } from "@/utils/string"
 
 const [amountInput$, onAmountChange] = createSignal<bigint | null>()
 
@@ -67,7 +67,7 @@ const AmountInput: React.FC = () => {
   return (
     <>
       <h2 className="font-bold">Amount to delegate:</h2>
-      <div>
+      <div className="flex flex-col gap-2 items-start">
         <TokenInput
           value={amount}
           onChange={onAmountChange}
@@ -265,12 +265,12 @@ const Warnings: React.FC = () => {
   return (
     <>
       {Object.keys(undelegations).length > 0 || votesRemoved.length > 0 ? (
-        <h2 className="mt-4 font-bold">Warnings: </h2>
+        <h2 className="mt-4 font-bold text-destructive">Warnings: </h2>
       ) : null}
       {Object.entries(undelegations).map(([address, tracks]) => (
         <div>
-          You will stop delegating to {shortStr(4, address)} on the following
-          tracks: {tracks.join(", ")}.
+          You will stop delegating to {truncateString(address, 8)} on the
+          following tracks: {tracks.join(", ")}.
         </div>
       ))}
       {votesRemoved.length > 0 ? (
@@ -297,15 +297,16 @@ export const DelegateAction = () => {
       <h1 className="text-lg my-5 font-semibold">
         Delegate on {chainData} to {delegateAccount}
       </h1>
-      <div className="flex flex-col text-left  border-[1px] border-gray-200 rounded-lg p-5">
-        <Subscribe fallback={<div>Loading...</div>}>
+
+      <Subscribe fallback={<div>Loading...</div>}>
+        <div className="flex flex-col text-left border-[1px] border-gray-200 rounded-lg p-5">
           <AmountInput />
           <ConvictionInput />
           <SelectTracks />
           <Warnings />
           <Delegate />
-        </Subscribe>
-      </div>
+        </div>
+      </Subscribe>
     </div>
   )
 }

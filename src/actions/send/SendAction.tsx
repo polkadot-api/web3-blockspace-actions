@@ -1,7 +1,7 @@
 import { AccountSelector } from "@/AccountSelector.tsx"
 import { ChainId } from "@/api/allChains.ts"
 import { SupportedTokens, tokenDecimals } from "@/services/balances.ts"
-import { truncateString } from "@/utils/address.ts"
+import { truncateString } from "@/utils/string"
 import { Field, Label, Radio, RadioGroup } from "@headlessui/react"
 import { state, useStateObservable } from "@react-rxjs/core"
 import { merge } from "rxjs"

@@ -1,6 +1,6 @@
 import { TransactionStatus, Transaction } from "./send"
 import { ChainId } from "@/api"
-import { truncateString } from "@/utils/address"
+import { truncateString } from "@/utils/string"
 import { SupportedTokens } from "@/services/balances"
 import { formatCurrencyWithSymbol } from "@/utils/format-currency"
 import { SS58String } from "polkadot-api"

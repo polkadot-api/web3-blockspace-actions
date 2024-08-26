@@ -11,7 +11,7 @@ import {
   selectedExtension$,
   selectExtension,
 } from "./services/accounts"
-import { truncateString } from "./utils/address"
+import { truncateString } from "./utils/string"
 
 const [openChange$, setAccountPickerOpen] = createSignal<boolean>()
 // eslint-disable-next-line react-refresh/only-export-components
