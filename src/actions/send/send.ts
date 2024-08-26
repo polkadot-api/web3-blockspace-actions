@@ -51,8 +51,11 @@ export const accountRoute$ = state(
 export const recipient$ = state(
   routeMatch$(PATTERN).pipe(
     map((routeData) => {
-      // todo: validate address is valid SS58 string
-      return routeData?.params.account?.split("&")[0] ?? null
+      const address = routeData?.params.account?.split("&")[0]
+
+      if (!address || !getSs58AddressInfo(address).isValid) return null
+
+      return address
     }),
   ),
   null,
@@ -331,6 +334,7 @@ export const transferStatus$ = state(
 )
 
 import { Observable } from "rxjs"
+import { getSs58AddressInfo } from "polkadot-api"
 
 type EmittedType<T> = T extends Observable<infer U> ? U : never
 

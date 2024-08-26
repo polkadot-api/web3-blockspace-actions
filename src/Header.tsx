@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { AccountSelector } from "./AccountSelector"
+import { AccountSelector } from "./components/AccountSelector"
 
 export const Header = () => {
   return (

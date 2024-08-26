@@ -28,12 +28,17 @@ import {
   rococoAssetHubClient,
 } from "./rococoAssetHub"
 import { decodedWestendSpec, westendApi, westendClient } from "./westend"
-import { decodedWestendAssetHubSpec } from "./westendAssetHub"
+import {
+  decodedWestendAssetHubSpec,
+  westendAssetHubApi,
+  westendAssetHubClient,
+} from "./westendAssetHub"
 
 export interface Chain<T extends ChainDefinition> {
   chainSpec: Promise<ChainSpec>
   api: TypedApi<T>
   client: PolkadotClient
+  blockExplorer: String
 }
 
 export const allChains = {
@@ -41,46 +46,55 @@ export const allChains = {
     chainSpec: decodedPolkadotSpec,
     api: polkadotApi,
     client: polkadotClient,
+    blockExplorer: "https://www.subscan.io/",
   },
   polkadotAssetHub: {
     chainSpec: decodedPolkadotAssetHubSpec,
     api: polkadotAssetHubApi,
     client: polkadotAssetHubClient,
+    blockExplorer: "https://assethub-polkadot.subscan.io/",
   },
   polkadotBridgeHub: {
     chainSpec: decodedPolkadotBridgeHubSpec,
     api: polkadotBridgeHubApi,
     client: polkadotBridgeHubClient,
+    blockExplorer: "https://bridgehub-polkadot.subscan.io/",
   },
   polkadotCollectives: {
     chainSpec: decodedPolkadotCollectivesSpec,
     api: polkadotCollectivesApi,
     client: polkadotCollectivesClient,
+    blockExplorer: "https://collectives-polkadot.subscan.io/",
   },
   polkadotPeople: {
     chainSpec: decodedPolkadotPeopleSpec,
     api: polkadotPeopleApi,
     client: polkadotPeopleClient,
+    blockExplorer: "https://people-polkadot.subscan.io/",
   },
   rococo: {
     chainSpec: decodedRococoSpec,
     api: rococoApi,
     client: rococoClient,
+    blockExplorer: "https://rococo.subscan.io/",
   },
   rococoAssetHub: {
     chainSpec: decodedRococoAssetHubSpec,
     api: rococoAssetHubApi,
     client: rococoAssetHubClient,
+    blockExplorer: "https://assethub-rococo.subscan.io/",
   },
   westend: {
     chainSpec: decodedWestendSpec,
     api: westendApi,
     client: westendClient,
+    blockExplorer: "https://westend.stg.subscan.io/",
   },
   westendAssetHub: {
     chainSpec: decodedWestendAssetHubSpec,
-    api: westendApi,
-    client: westendClient,
+    api: westendAssetHubApi,
+    client: westendAssetHubClient,
+    blockExplorer: "https://assethub-westend.subscan.io/",
   },
 } satisfies Record<string, Chain<ChainDefinition>>
 

@@ -14,8 +14,9 @@ import React, {
   useRef,
   useState,
 } from "react"
-import { cn, formatCurrency, shortStr } from "@/lib/utils"
+import { cn, formatCurrency } from "@/utils/format-currency"
 import { InjectedPolkadotAccount } from "polkadot-api/pjs-signer"
+import { truncateString } from "@/utils/string"
 
 const FormattedToken: React.FC<{
   ticker: string
@@ -68,7 +69,7 @@ const SubmitDialog: React.FC<
                   case "txBestBlocksState": {
                     e.found
                       ? setDialogText(
-                          `The transaction was found in a best block (${e.block.number}-${shortStr(8, e.block.hash)}), ${
+                          `The transaction was found in a best block (${e.block.number}-${truncateString(e.block.hash, 16)}), ${
                             e.ok
                               ? "and it's being successful! 🎉"
                               : "but it's failing... 😞"
@@ -85,7 +86,7 @@ const SubmitDialog: React.FC<
                   }
                   case "finalized": {
                     setDialogText(
-                      `The transaction is in a finalized block (${e.block.number}-${shortStr(8, e.block.hash)}), ${
+                      `The transaction is in a finalized block (${e.block.number}-${truncateString(e.block.hash, 16)}), ${
                         e.ok
                           ? "and it was successful! 🎉"
                           : "but it failed... 😞"
