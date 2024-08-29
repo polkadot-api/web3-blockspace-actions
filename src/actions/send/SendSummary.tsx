@@ -7,14 +7,10 @@ import { HexString } from "polkadot-api"
 import { allChains } from "@/api"
 
 import { useStateObservable } from "@react-rxjs/core"
-import {
-  transferAmount$,
-  recipient$,
-  token$,
-  transferStatus$,
-  senderChainId$,
-} from "./send"
+import { transferStatus$ } from "./send"
 import { selectedAccount$ } from "@/services/accounts"
+import { transferAmount$, recipient$, token$ } from "./inputs"
+import { senderChainId$ } from "./select-chain"
 
 export default function SendSummary() {
   const transferAmount = useStateObservable(transferAmount$)

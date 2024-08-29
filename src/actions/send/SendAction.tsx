@@ -4,27 +4,27 @@ import { truncateString } from "@/utils/string"
 import { state, useStateObservable } from "@react-rxjs/core"
 import { merge } from "rxjs"
 import { formatCurrencyWithSymbol } from "@/utils/format-currency.ts"
-import { ChainSelector } from "./ChainSelector.tsx"
-import {
-  accountsWithSufficientBalance$,
-  recipient$,
-  recipientChainData$,
-  selectedRoute$,
-  senderChainId$,
-  token$,
-  TransactionStatus,
-  transferAmount$,
-  transferStatus$,
-} from "./send"
+import { ChainSelector } from "./select-chain.tsx"
+import { selectedRoute$, TransactionStatus, transferStatus$ } from "./send"
+import { accountsWithSufficientBalance$ } from "./select-chain.tsx"
 import Submit from "./Submit"
 import SendSummary from "./SendSummary.tsx"
+import { InvalidInputs, inputErrors$ } from "./inputs.tsx"
+import { senderChainId$ } from "./select-chain"
+
+import {
+  recipient$,
+  recipientChainData$,
+  token$,
+  transferAmount$,
+} from "./inputs.tsx"
 
 state(
   merge(
+    senderChainId$,
     accountsWithSufficientBalance$,
     recipient$,
     recipientChainData$,
-    senderChainId$,
     token$,
     transferAmount$,
   ),
@@ -36,13 +36,11 @@ export default function SendAction() {
   const transferAmount = useStateObservable(transferAmount$)
   const token = useStateObservable(token$)
   const transferStatus = useStateObservable(transferStatus$)
-
-  if (!recipientChainData) return "No valid recipient chain"
-  if (!transferAmount) return "Specify Transfer Amount"
-  if (!recipient) return "No valid recipient"
-  if (!token) return "No valid token"
+  const inputErrors = useStateObservable(inputErrors$)
 
   const decimals = tokenDecimals[token as SupportedTokens]
+
+  if (inputErrors.length > 0) return <InvalidInputs />
 
   if (transferStatus?.status === TransactionStatus.Finalized)
     return <SendSummary />
@@ -54,7 +52,7 @@ export default function SendAction() {
         <div className="flex flex-row justify-between">
           Amount:{" "}
           <div className="text-right">
-            {formatCurrencyWithSymbol(transferAmount, decimals, token)}
+            {formatCurrencyWithSymbol(transferAmount, decimals, token!)}
           </div>
         </div>
         <div className="flex flex-row justify-between gap-2">
@@ -71,7 +69,7 @@ export default function SendAction() {
           Account:
           <AccountSelector />
         </div>
-        <ChainSelector decimals={decimals} token={token} />
+        <ChainSelector decimals={decimals} token={token!} />
       </div>
       <RouteDisplay />
     </div>

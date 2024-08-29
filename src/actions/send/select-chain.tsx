@@ -1,11 +1,75 @@
-import { SupportedTokens } from "@/services/balances"
-import { useStateObservable } from "@react-rxjs/core"
-import { accountsWithSufficientBalance$ } from "./send"
-import { senderChainId$, changeSenderChainId$, feeEstimation$ } from "./send"
-import * as RadioGroup from "@radix-ui/react-radio-group"
-import { ChainId } from "@/api"
-import { formatCurrencyWithSymbol } from "@/utils/format-currency"
 import clsx from "clsx"
+import { combineLatest, switchMap, materialize, scan, of, map } from "rxjs"
+import { useStateObservable, state } from "@react-rxjs/core"
+import { createSignal } from "@react-rxjs/utils"
+import * as RadioGroup from "@radix-ui/react-radio-group"
+
+// Todo: duplicate Chain type in api and in balances
+import { SupportedTokens, findBalances$, Chain } from "@/services/balances"
+import { selectedAccount$ } from "@/services/accounts"
+import { token$, recipientChainId$, transferAmount$ } from "./inputs"
+import { formatCurrencyWithSymbol } from "@/utils/format-currency"
+import { Fee } from "./fee"
+import { isSupportedToken } from "@/services/balances"
+import { findRoute } from "./transfers"
+import { ChainId } from "@/api"
+
+export const [onChangeSenderChainId$, changeSenderChainId$] =
+  createSignal<ChainId>()
+export const senderChainId$ = state(onChangeSenderChainId$, "")
+
+export const balances$ = state(
+  combineLatest([token$, selectedAccount$, recipientChainId$]).pipe(
+    switchMap(([token, account, chainId]) => {
+      if (!token || !account || !chainId || !isSupportedToken(token))
+        return of([])
+
+      // balances.filter((b) => predefinedTransfers[b.chain.id][chainId][token!]),
+      return findBalances$(token as SupportedTokens, account.address).pipe(
+        materialize(),
+        scan(
+          (state, evt) => {
+            if (evt.kind === "E") {
+              throw evt.error
+            }
+            if (evt.kind === "C") {
+              return state ?? []
+            }
+            const result = evt.value.filter((b) =>
+              findRoute(b.chain.id, chainId, token),
+            )
+            // More might be coming
+            if (!result.length) return null
+            return result
+          },
+          null as
+            | {
+                transferable: bigint
+                chain: Chain
+              }[]
+            | null,
+        ),
+      )
+    }),
+  ),
+  null,
+)
+
+export const accountsWithSufficientBalance$ = state(
+  combineLatest([balances$, transferAmount$]).pipe(
+    map(([balances, amount]) => {
+      if (balances === null) return null
+      if (amount === null) {
+        console.warn(
+          "Amount not set, can't calculate accounts with sufficent balance",
+        )
+        return []
+      }
+      return balances.filter((balance) => balance.transferable > amount)
+    }),
+  ),
+  null,
+)
 
 export const ChainSelector: React.FC<{
   decimals: number
@@ -86,21 +150,6 @@ export const ChainSelector: React.FC<{
           ))}
         </div>
       </RadioGroup.Root>
-    </div>
-  )
-}
-
-const Fee: React.FC<{
-  chainId: ChainId
-  decimals: number
-  token: SupportedTokens
-}> = ({ chainId, decimals, token }) => {
-  const feeEstimation = useStateObservable(feeEstimation$(chainId))
-  return (
-    <div>
-      {formatCurrencyWithSymbol(feeEstimation, decimals, token, {
-        nDecimals: 4,
-      })}
     </div>
   )
 }

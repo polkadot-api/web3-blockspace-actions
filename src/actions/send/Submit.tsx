@@ -1,14 +1,10 @@
 import * as Progress from "@radix-ui/react-progress"
 import { state, useStateObservable, withDefault } from "@react-rxjs/core"
 import { map, of, switchMap, withLatestFrom } from "rxjs"
-import {
-  senderChainId$,
-  submitTransfer$,
-  TransactionStatus,
-  transferStatus$,
-} from "./send"
+import { submitTransfer$, TransactionStatus, transferStatus$ } from "./send"
 import { allChains } from "@/api"
 import { twMerge } from "tailwind-merge"
+import { senderChainId$ } from "./select-chain"
 
 transferStatus$.subscribe()
 

@@ -77,7 +77,7 @@ const Submit = () => {
       />
       <span>or</span>
 
-      <div>
+      <div className="transation-all">
         {copied ? (
           <div className="flex flex-row gap-2 font-semibold">
             Copied to clipboard <CopyCheckIcon className="text-green-600" />
