@@ -33,12 +33,20 @@ import {
   westendAssetHubApi,
   westendAssetHubClient,
 } from "./westendAssetHub"
+import { SupportedTokens } from "@/services/balances"
 
 export interface Chain<T extends ChainDefinition> {
   chainSpec: Promise<ChainSpec>
   api: TypedApi<T>
   client: PolkadotClient
   blockExplorer: String
+}
+
+// todo: move to chain definition
+export const chainCurrencies: Partial<Record<ChainId, SupportedTokens[]>> = {
+  polkadotAssetHub: ["USDC", "USDT"],
+  rococoAssetHub: ["WND"],
+  westendAssetHub: ["ROC"],
 }
 
 export const allChains = {
