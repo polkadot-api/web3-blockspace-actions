@@ -1,14 +1,17 @@
+import { useState } from "react"
+import { combineLatest, filter, map, merge, scan, take } from "rxjs"
+import { state, useStateObservable, withDefault } from "@react-rxjs/core"
+import { createSignal, mergeWithKey } from "@react-rxjs/utils"
+import { useNavigate } from "react-router-dom"
+import { CopyIcon, CopyCheckIcon } from "lucide-react"
+import { twMerge } from "tailwind-merge"
+import { getSs58AddressInfo } from "polkadot-api"
+
 import { allChains, ChainId } from "@/api"
 import { formatValue } from "@/components/token-formatter"
 import { TokenInput } from "@/components/TokenInput"
 import { chains, SupportedTokens, tokenDecimals } from "@/services/balances"
-import { state, useStateObservable, withDefault } from "@react-rxjs/core"
-import { createSignal, mergeWithKey } from "@react-rxjs/utils"
-import { getSs58AddressInfo } from "polkadot-api"
-import { useNavigate } from "react-router-dom"
-import { combineLatest, filter, map, merge, scan, take } from "rxjs"
-import { twMerge } from "tailwind-merge"
-import { truncateString } from "@/utils/string"
+import { abs } from "@/utils/bigint"
 
 const chains$ = state(
   combineLatest(
@@ -18,6 +21,8 @@ const chains$ = state(
   ).pipe(map((v) => v.filter(Boolean))),
   [],
 )
+
+// todo: move to chain definition
 const chainCurrencies: Partial<Record<ChainId, SupportedTokens[]>> = {
   polkadotAssetHub: ["USDC", "USDT"],
   rococoAssetHub: ["WND"],
@@ -64,7 +69,10 @@ const selectedCurrency$ = state(
 )
 
 const [amountChanged$, setAmount] = createSignal<bigint | null>()
-const amount$ = state(amountChanged$, null)
+const amount$ = state(
+  amountChanged$.pipe(map((amt) => (amt ? abs(amt) : amt))),
+  null,
+)
 
 const [addressChanged$, setAddress] = createSignal<string>()
 
@@ -72,7 +80,7 @@ const address$ = state(
   addressChanged$.pipe(
     map((address) => ({ ...getSs58AddressInfo(address ?? ""), address })),
   ),
-  null,
+  { address: "", isValid: false },
 )
 
 const generatedUrl$ = state(
@@ -96,11 +104,9 @@ export default function CreateSend() {
     return <div>Loading...</div>
   }
 
-  const disabled = !generatedUrl
-
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault()
-    if (disabled) return
+    if (!generatedUrl) return
 
     navigate(generatedUrl)
   }
@@ -116,17 +122,7 @@ export default function CreateSend() {
         <SelectCurrency />
         <SelectAmount />
         <SelectRecipient />
-
-        <div>{generatedUrl ? truncateString(generatedUrl, 10) : null}</div>
-        <input
-          className={twMerge(
-            "border p-2 bg-[#ff007b] text-white font-bold cursor-pointer",
-            disabled ? "opacity-50" : "",
-          )}
-          type="submit"
-          value="Create Action"
-          disabled={disabled}
-        />
+        <Submit />
       </form>
     </div>
   )
@@ -201,15 +197,64 @@ const SelectAmount: React.FC = () => {
 const SelectRecipient: React.FC = () => {
   const address = useStateObservable(address$)
   return (
-    <label className="flex flex-row items-center justify-between gap-2">
-      <span>Recipient:</span>
+    <div>
+      <label className="flex flex-row items-center justify-between gap-2">
+        <span>Recipient:</span>
+        <input
+          type="text"
+          className="p-2 border rounded flex-1"
+          placeholder="Enter address..."
+          value={address.address}
+          onChange={(evt) => setAddress(evt.target.value)}
+        />
+      </label>
+      {address.address !== "" && !address.isValid ? (
+        <span className="text-destructive">Invalid address.</span>
+      ) : null}
+    </div>
+  )
+}
+
+const Submit = () => {
+  const generatedUrl = useStateObservable(generatedUrl$)
+
+  const [copied, setCopied] = useState(false)
+  if (!generatedUrl) return null
+
+  return (
+    <div className="flex flex-col items-center gap-2 mt-2">
       <input
-        type="text"
-        className="p-2 border rounded flex-1"
-        placeholder="Enter address..."
-        value={address?.address}
-        onChange={(evt) => setAddress(evt.target.value)}
+        className={twMerge(
+          "border p-2 bg-[#ff007b] text-white font-bold cursor-pointer",
+          !generatedUrl ? "opacity-50" : "",
+        )}
+        type="submit"
+        value="Create Action"
+        disabled={!generatedUrl}
       />
-    </label>
+      <span>or</span>
+
+      <div>
+        {copied ? (
+          <div className="flex flex-row gap-2 font-semibold">
+            Copied to clipboard <CopyCheckIcon className="text-green-600" />
+          </div>
+        ) : (
+          <button
+            className="flex flex-row gap-2 font-semibold"
+            onClick={(evt) => {
+              evt.preventDefault()
+              navigator.clipboard.writeText(window.location.host + generatedUrl)
+              setTimeout(() => {
+                setCopied(true)
+              }, 200)
+            }}
+          >
+            Copy the generated URL
+            <CopyIcon />
+          </button>
+        )}
+      </div>
+    </div>
   )
 }

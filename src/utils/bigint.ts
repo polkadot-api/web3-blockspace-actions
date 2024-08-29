@@ -15,3 +15,5 @@ export const divideBigInt = (
     10n ** numerator.precision
   )
 }
+
+export const abs = (num: bigint) => (num < 0 ? -num : num)
