@@ -2,7 +2,6 @@ import clsx from "clsx"
 import { combineLatest, switchMap, materialize, scan, of, map } from "rxjs"
 import { useStateObservable, state } from "@react-rxjs/core"
 import { createSignal } from "@react-rxjs/utils"
-import * as RadioGroup from "@radix-ui/react-radio-group"
 
 // Todo: duplicate Chain type in api and in balances
 import { SupportedTokens, findBalances$, Chain } from "@/services/balances"
@@ -13,10 +12,8 @@ import { Fee } from "./fee"
 import { isSupportedToken } from "@/services/balances"
 import { findRoute } from "./transfers"
 import { ChainId } from "@/api"
-
-export const [onChangeSenderChainId$, changeSenderChainId$] =
-  createSignal<ChainId>()
-export const senderChainId$ = state(onChangeSenderChainId$, "")
+import { PropsWithChildren, useEffect } from "react"
+import { CheckCircleIcon } from "lucide-react"
 
 export const balances$ = state(
   combineLatest([token$, selectedAccount$, recipientChainId$]).pipe(
@@ -71,12 +68,21 @@ export const accountsWithSufficientBalance$ = state(
   null,
 )
 
+export const [onChangeSenderChainId$, changeSenderChainId$] =
+  createSignal<ChainId>()
+export const senderChainId$ = state(onChangeSenderChainId$, "")
+
 export const ChainSelector: React.FC<{
   decimals: number
   token: SupportedTokens
 }> = ({ decimals, token }) => {
   const balances = useStateObservable(accountsWithSufficientBalance$)
   const selectedChain = useStateObservable(senderChainId$)
+
+  useEffect(() => {
+    if (balances && balances.length > 0)
+      changeSenderChainId$(balances[0].chain.id)
+  }, [balances])
 
   if (balances == null) {
     return <div className="max-w-[300px]">Loading balances...</div>
@@ -93,34 +99,17 @@ export const ChainSelector: React.FC<{
   return (
     <div className="mt-5">
       <div className="font-semibold ">Select a chain</div>
-      <RadioGroup.Root
-        aria-label="Sender chain"
-        defaultValue={""}
-        onValueChange={changeSenderChainId$}
-      >
-        <div className="mt-3 space-y-3">
-          {balances.map((balance) => (
-            <div key={balance.chain.id} className="flex items-center">
-              <RadioGroup.Item
-                id={balance.chain.id}
-                value={balance.chain.id}
-                className={clsx(
-                  "peer relative w-4 h-4 rounded-full",
-                  "border border-transparent text-white",
-                  selectedChain === balance.chain.id
-                    ? "bg-pink"
-                    : "bg-gray-700",
-                  "focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800",
-                )}
-              >
-                <RadioGroup.Indicator className="absolute inset-0 flex items-center justify-center leading-0">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                </RadioGroup.Indicator>
-              </RadioGroup.Item>
-              <label
-                htmlFor={balance.chain.id}
-                className="flex flex-row justify-between w-full gap-2 pt-5 ml-2  text-sm font-medium text-gray-700 dark:text-gray-400"
-              >
+
+      <div className="flex flex-col gap-1 mt-3">
+        {balances.map((balance) => {
+          return (
+            <SelectableCard
+              val={balance.chain.id}
+              onSelected={changeSenderChainId$}
+              isSelected={balance.chain.id === selectedChain}
+              disabled={balances.length === 1}
+            >
+              <div className="flex flex-row justify-between w-full gap-2  text-sm font-medium">
                 <h3 className="font-semibold">{balance.chain.id}</h3>
                 <div className="flex flex-col">
                   <div className="flex flex-row justify-between">
@@ -145,11 +134,43 @@ export const ChainSelector: React.FC<{
                     />
                   </div>
                 </div>
-              </label>
-            </div>
-          ))}
-        </div>
-      </RadioGroup.Root>
+              </div>
+            </SelectableCard>
+          )
+        })}
+      </div>
     </div>
+  )
+}
+
+const SelectableCard: React.FC<
+  PropsWithChildren<{
+    val: ChainId
+    onSelected: (val: ChainId) => void
+    isSelected: boolean
+    disabled: boolean
+  }>
+> = ({ val, onSelected, isSelected, children, disabled }) => {
+  return (
+    <button
+      className={clsx(
+        "flex flex-row items-center",
+        "py-1 px-2 text-gray-700",
+        "border border-1 rounded-lg",
+        isSelected ? "border-pink border-1" : "border-gray-700",
+        disabled ? "" : "hover:bg-gray-100",
+      )}
+      disabled={disabled}
+      value={val}
+      onClick={(evt) => {
+        evt.preventDefault()
+        onSelected(val)
+      }}
+    >
+      {children}
+      <div className="ml-3 w-6">
+        {isSelected && <CheckCircleIcon className="text-pink w-5 h-5" />}
+      </div>
+    </button>
   )
 }

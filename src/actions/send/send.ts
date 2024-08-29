@@ -1,5 +1,4 @@
 import { ChainId } from "@/api/allChains"
-
 import { selectedAccount$ } from "@/services/accounts"
 import { SupportedTokens } from "@/services/balances.ts"
 import { state } from "@react-rxjs/core"
@@ -12,7 +11,9 @@ import {
   of,
   startWith,
   switchMap,
+  Observable,
   withLatestFrom,
+  tap,
 } from "rxjs"
 import {
   recipientChainId$,
@@ -22,10 +23,7 @@ import {
 } from "./inputs"
 import { errorToast, successToast } from "./toast"
 import { findRoute, predefinedTransfers } from "./transfers"
-
-export const [onChangeSenderChainId$, changeSenderChainId$] =
-  createSignal<ChainId>()
-export const senderChainId$ = state(onChangeSenderChainId$, "")
+import { senderChainId$ } from "./select-chain"
 
 // TODO switching an account here will result in wrong value
 export const selectedRoute$ = state(
@@ -124,11 +122,10 @@ export const transferStatus$ = state(
         }),
       )
     }),
+    tap((status) => console.info("Transaction status: ", status)),
   ),
   null,
 )
-
-import { Observable } from "rxjs"
 
 type EmittedType<T> = T extends Observable<infer U> ? U : never
 
