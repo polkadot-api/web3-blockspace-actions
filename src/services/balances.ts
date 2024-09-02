@@ -6,27 +6,13 @@ import {
   polkadotCollectivesApi,
   polkadotPeopleApi,
 } from "@/api"
+import { SupportedTokens } from "@/api/allTokens"
 import { rococoApi } from "@/api/rococo"
 import { rococoAssetHubApi } from "@/api/rococoAssetHub"
 import { westendApi } from "@/api/westend"
 import { westendAssetHubApi } from "@/api/westendAssetHub"
+import { westendBridgeHubApi } from "@/api/westendBridgeHub"
 import { combineLatest, distinctUntilChanged, from, map, startWith } from "rxjs"
-
-export type SupportedTokens = "DOT" | "USDT" | "USDC" | "WND" | "ROC"
-
-export function isSupportedToken(token: string): token is SupportedTokens {
-  return (["DOT", "USDT", "USDC", "WND", "ROC"] as const).includes(
-    token as SupportedTokens,
-  )
-}
-
-export const tokenDecimals: Record<SupportedTokens, number> = {
-  DOT: 10,
-  USDT: 6,
-  USDC: 6,
-  WND: 12,
-  ROC: 12,
-}
 
 type GetAccountResult = ReturnType<
   typeof polkadotApi.query.System.Account.getValue
@@ -34,6 +20,7 @@ type GetAccountResult = ReturnType<
 export interface Chain {
   id: ChainId
   nativeToken: SupportedTokens
+  supportedTokens?: SupportedTokens[]
   getSystemAccount: (address: string) => GetAccountResult
   getED: () => Promise<bigint>
   getAssetBalance?: (
@@ -52,6 +39,7 @@ export const chains: Chain[] = [
   {
     id: "polkadotAssetHub",
     nativeToken: "DOT",
+    supportedTokens: ["USDC", "USDT"],
     getSystemAccount: polkadotAssetHubApi.query.System.Account.getValue,
     getED: polkadotAssetHubApi.constants.Balances.ExistentialDeposit,
     getAssetBalance: async (asset, addr) => {
@@ -89,6 +77,7 @@ export const chains: Chain[] = [
   {
     id: "rococoAssetHub",
     nativeToken: "ROC",
+    supportedTokens: ["WND"],
     getSystemAccount: rococoAssetHubApi.query.System.Account.getValue,
     getED: rococoAssetHubApi.constants.Balances.ExistentialDeposit,
   },
@@ -101,8 +90,15 @@ export const chains: Chain[] = [
   {
     id: "westendAssetHub",
     nativeToken: "WND",
+    supportedTokens: ["ROC"],
     getSystemAccount: westendAssetHubApi.query.System.Account.getValue,
     getED: westendAssetHubApi.constants.Balances.ExistentialDeposit,
+  },
+  {
+    id: "westendBridgeHub",
+    nativeToken: "WND",
+    getSystemAccount: westendBridgeHubApi.query.System.Account.getValue,
+    getED: westendBridgeHubApi.constants.Balances.ExistentialDeposit,
   },
 ]
 

@@ -4,8 +4,7 @@ import { createSignal } from "@react-rxjs/utils"
 import { TokenInput } from "@/components/TokenInput"
 import { selectedCurrency$ } from "./select-currency"
 import { abs } from "@/utils/bigint"
-import { tokenDecimals } from "@/services/balances"
-
+import { allTokens, SupportedTokens } from "@/api/allTokens"
 const [amountChanged$, setAmount] = createSignal<bigint | null>()
 export const amount$ = state(
   amountChanged$.pipe(map((amt) => (amt ? abs(amt) : amt))),
@@ -15,6 +14,7 @@ export const amount$ = state(
 export const SelectAmount: React.FC = () => {
   const amount = useStateObservable(amount$)
   const selectedCurrency = useStateObservable(selectedCurrency$)
+  const { decimals } = allTokens[selectedCurrency as SupportedTokens]
 
   return (
     <label className="flex flex-row items-center justify-between gap-2">
@@ -23,7 +23,7 @@ export const SelectAmount: React.FC = () => {
         <TokenInput
           token={{
             name: selectedCurrency,
-            decimals: tokenDecimals[selectedCurrency],
+            decimals,
           }}
           value={amount}
           onChange={setAmount}

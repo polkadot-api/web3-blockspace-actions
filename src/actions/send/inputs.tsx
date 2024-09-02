@@ -3,11 +3,8 @@ import { useStateObservable, state } from "@react-rxjs/core"
 import { getSs58AddressInfo } from "polkadot-api"
 import { ChainSpec } from "@/api/chainspec"
 import { routeMatch$ } from "@/router"
-import {
-  SupportedTokens,
-  tokenDecimals,
-  isSupportedToken,
-} from "@/services/balances"
+import { allTokens, isSupportedToken } from "@/api/allTokens"
+import { SupportedTokens } from "@/api/allTokens"
 import { parseCurrency } from "@/utils/currency"
 import { allChains, ChainId } from "@/api"
 
@@ -39,7 +36,7 @@ export const transferAmount$ = state(
       try {
         let parsedValue = parseCurrency(
           amount,
-          tokenDecimals[token.toUpperCase() as SupportedTokens],
+          allTokens[token.toUpperCase() as SupportedTokens].decimals,
         )
         return parsedValue === null || parsedValue < 0 ? null : parsedValue
       } catch (error) {

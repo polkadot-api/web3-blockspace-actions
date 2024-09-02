@@ -6,19 +6,19 @@ import { CopyIcon, CopyCheckIcon } from "lucide-react"
 import { twMerge } from "tailwind-merge"
 
 import { formatValue } from "@/components/token-formatter"
-import { tokenDecimals } from "@/services/balances"
 
 import { SelectChain, selectedChain$ } from "./select-chain"
 import { SelectCurrency, selectedCurrency$ } from "./select-currency"
 import { SelectAmount, amount$ } from "./select-amount"
 import { SelectRecipient, address$ } from "./select-recipient"
+import { allTokens } from "@/api/allTokens"
 
 const generatedUrl$ = state(
   combineLatest([selectedChain$, amount$, selectedCurrency$, address$]).pipe(
     map(([chain, amount, ccy, address]) => {
       if (!chain || !amount || !ccy || !address?.isValid) return null
 
-      return `/send/${chain}/${address.address}?amount=${formatValue(amount, tokenDecimals[ccy], false)}&token=${ccy}`
+      return `/send/${chain}/${address.address}?amount=${formatValue(amount, allTokens[ccy].decimals, false)}&token=${ccy}`
     }),
   ),
   null,

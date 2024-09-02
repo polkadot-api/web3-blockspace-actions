@@ -1,7 +1,7 @@
 import { useState } from "react"
 import clsx from "clsx"
 import { AccountSelector } from "@/components/AccountSelector.tsx"
-import { SupportedTokens, tokenDecimals } from "@/services/balances.ts"
+import { SupportedTokens } from "@/api/allTokens.ts"
 import { truncateString } from "@/utils/string"
 import { state, useStateObservable } from "@react-rxjs/core"
 import { merge } from "rxjs"
@@ -14,7 +14,7 @@ import SendSummary from "./SendSummary.tsx"
 import { InvalidInputs, inputErrors$ } from "./inputs.tsx"
 import { senderChainId$ } from "./select-chain"
 import { ArrowRight } from "lucide-react"
-
+import { allTokens } from "@/api/allTokens.ts"
 import {
   recipient$,
   recipientChainData$,
@@ -41,7 +41,7 @@ export default function SendAction() {
   const transferStatus = useStateObservable(transferStatus$)
   const inputErrors = useStateObservable(inputErrors$)
 
-  const decimals = tokenDecimals[token as SupportedTokens]
+  const { decimals } = allTokens[token as SupportedTokens]
 
   if (inputErrors.length > 0) return <InvalidInputs />
 

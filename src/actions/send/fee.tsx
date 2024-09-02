@@ -1,7 +1,7 @@
 import { combineLatest, switchMap, map, catchError, EMPTY } from "rxjs"
 import { state, useStateObservable } from "@react-rxjs/core"
 import { ChainId } from "@/api"
-import { SupportedTokens } from "@/services/balances"
+import { SupportedTokens } from "@/api/allTokens"
 import { formatCurrencyWithSymbol } from "@/utils/format-currency"
 import {
   recipientChainId$,

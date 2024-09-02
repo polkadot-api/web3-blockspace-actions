@@ -1,6 +1,6 @@
 import { ChainId } from "@/api/allChains"
 import { selectedAccount$ } from "@/services/accounts"
-import { SupportedTokens } from "@/services/balances.ts"
+import { SupportedTokens } from "@/api/allTokens"
 import { state } from "@react-rxjs/core"
 import { createSignal } from "@react-rxjs/utils"
 import {

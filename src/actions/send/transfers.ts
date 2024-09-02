@@ -10,7 +10,9 @@ import { rococoApi } from "@/api/rococo"
 import { rococoAssetHubApi } from "@/api/rococoAssetHub"
 import { westendApi } from "@/api/westend"
 import { westendAssetHubApi } from "@/api/westendAssetHub"
-import { assetHubTokenIds, SupportedTokens } from "@/services/balances"
+import { westendBridgeHubApi } from "@/api/westendBridgeHub"
+import { assetHubTokenIds } from "@/services/balances"
+import { SupportedTokens } from "@/api/allTokens"
 import {
   MultiAddress,
   XcmV3Junction,
@@ -47,6 +49,7 @@ const createChainMap = <T>(createValue: () => T): Record<ChainId, T> => ({
   rococoAssetHub: createValue(),
   westend: createValue(),
   westendAssetHub: createValue(),
+  westendBridgeHub: createValue(),
 })
 
 export const predefinedTransfers: PredefinedTransfers = createChainMap(() =>
@@ -241,6 +244,16 @@ const chains: RelayChain[] = [
           },
         ],
       },
+
+      {
+        id: "westendBridgeHub",
+        parachainId: 1002,
+        transfer: westendBridgeHubApi.tx.Balances.transfer_keep_alive,
+        teleport: westendBridgeHubApi.tx.PolkadotXcm.teleport_assets,
+        bridges: [],
+        reserveTransfer:
+          westendBridgeHubApi.tx.PolkadotXcm.reserve_transfer_assets,
+      },
     ],
   },
 ]
@@ -277,7 +290,7 @@ const nativeTokenToParachain =
   (teleport: Chain["teleport"], parachain: number, parents: number) =>
   (dest: string, value: bigint) =>
     teleport({
-      assets: nativeAsset(0, value),
+      assets: nativeAsset(parents, value),
       dest: XcmVersionedLocation.V4({
         parents,
         interior: Enum("X1", [XcmV3Junction.Parachain(parachain)]),

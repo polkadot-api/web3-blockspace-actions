@@ -1,4 +1,4 @@
-import { SupportedTokens } from "@/services/balances"
+import { SupportedTokens } from "@/api/allTokens"
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 

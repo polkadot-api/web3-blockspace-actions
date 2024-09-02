@@ -1,16 +1,17 @@
 import { map, scan } from "rxjs"
 import { state, withDefault, useStateObservable } from "@react-rxjs/core"
 import { createSignal, mergeWithKey } from "@react-rxjs/utils"
-import { chains, SupportedTokens } from "@/services/balances"
-import { chainCurrencies } from "@/api"
+import { chains } from "@/services/balances"
+import { SupportedTokens } from "@/api/allTokens"
 import { selectedChain$ } from "./select-chain"
 import {} from "@react-rxjs/core"
 
 const supportedCurrencies$ = selectedChain$.pipeState(
   map((v): SupportedTokens[] => {
     const nativeToken = chains.find((c) => c.id === v)?.nativeToken ?? "DOT"
-
-    return [nativeToken, ...((v ? chainCurrencies[v] : null) ?? [])]
+    const supportedTokens =
+      chains.find((c) => c.id === v)?.supportedTokens ?? []
+    return [nativeToken, ...((v ? supportedTokens : null) ?? [])]
   }),
   withDefault([] as SupportedTokens[]),
 )

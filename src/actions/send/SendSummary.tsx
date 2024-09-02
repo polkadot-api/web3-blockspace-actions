@@ -1,7 +1,7 @@
 import { TransactionStatus } from "./send"
 import { ChainId } from "@/api"
 import { truncateString } from "@/utils/string"
-import { SupportedTokens, tokenDecimals } from "@/services/balances"
+import { allTokens, SupportedTokens } from "@/api/allTokens"
 import { formatCurrencyWithSymbol } from "@/utils/format-currency"
 import { HexString } from "polkadot-api"
 import { allChains } from "@/api"
@@ -9,12 +9,7 @@ import { allChains } from "@/api"
 import { useStateObservable } from "@react-rxjs/core"
 import { transferStatus$ } from "./send"
 import { selectedAccount$ } from "@/services/accounts"
-import {
-  transferAmount$,
-  recipient$,
-  token$,
-  recipientChainId$,
-} from "./inputs"
+import { transferAmount$, recipient$, token$ } from "./inputs"
 import { senderChainId$ } from "./select-chain"
 
 export default function SendSummary() {
@@ -43,7 +38,7 @@ export default function SendSummary() {
             <div>
               {formatCurrencyWithSymbol(
                 transferAmount,
-                tokenDecimals[token as SupportedTokens],
+                allTokens[token as SupportedTokens].decimals,
                 token,
               )}
             </div>

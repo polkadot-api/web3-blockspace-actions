@@ -33,20 +33,17 @@ import {
   westendAssetHubApi,
   westendAssetHubClient,
 } from "./westendAssetHub"
-import { SupportedTokens } from "@/services/balances"
+import {
+  decodedWestendBridgeHubSpec,
+  westendBridgeHubApi,
+  westendBridgeHubClient,
+} from "./westendBridgeHub"
 
 export interface Chain<T extends ChainDefinition> {
   chainSpec: Promise<ChainSpec>
   api: TypedApi<T>
   client: PolkadotClient
   blockExplorer: String
-}
-
-// todo: move to chain definition
-export const chainCurrencies: Partial<Record<ChainId, SupportedTokens[]>> = {
-  polkadotAssetHub: ["USDC", "USDT"],
-  rococoAssetHub: ["WND"],
-  westendAssetHub: ["ROC"],
 }
 
 export const allChains = {
@@ -103,6 +100,12 @@ export const allChains = {
     api: westendAssetHubApi,
     client: westendAssetHubClient,
     blockExplorer: "https://assethub-westend.subscan.io/",
+  },
+  westendBridgeHub: {
+    chainSpec: decodedWestendBridgeHubSpec,
+    api: westendBridgeHubApi,
+    client: westendBridgeHubClient,
+    blockExplorer: "https://bridgehub-westend.subscan.io/",
   },
 } satisfies Record<string, Chain<ChainDefinition>>
 
