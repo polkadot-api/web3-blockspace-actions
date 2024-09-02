@@ -4,23 +4,34 @@ import { AccountSelector } from "@/components/AccountSelector.tsx"
 import { SupportedTokens } from "@/api/allTokens.ts"
 import { truncateString } from "@/utils/string"
 import { state, useStateObservable } from "@react-rxjs/core"
-import { merge } from "rxjs"
+import { merge, filter, withLatestFrom, map } from "rxjs"
 import { formatCurrencyWithSymbol } from "@/utils/format-currency.ts"
 import { ChainSelector } from "./select-chain.tsx"
-import { selectedRoute$, TransactionStatus, transferStatus$ } from "./send"
 import { accountsWithSufficientBalance$ } from "./select-chain.tsx"
-import Submit from "./Submit"
-import SendSummary from "./SendSummary.tsx"
+import SendSummary from "./summary.tsx"
 import { InvalidInputs, inputErrors$ } from "./inputs.tsx"
-import { senderChainId$ } from "./select-chain"
+import { senderChainId$ } from "./select-chain.tsx"
 import { ArrowRight } from "lucide-react"
 import { allTokens } from "@/api/allTokens.ts"
+import Submit, { transferStatus$, TransactionStatus } from "./submit.tsx"
 import {
   recipient$,
   recipientChainData$,
   token$,
   transferAmount$,
+  recipientChainId$,
 } from "./inputs.tsx"
+import { findRoute } from "./transfers.ts"
+
+// TODO switching an account here will result in wrong value
+const selectedRoute$ = state(
+  senderChainId$.pipe(
+    filter(Boolean),
+    withLatestFrom(recipientChainId$, token$),
+    map(([from, to, token]) => findRoute(from, to!, token!)),
+  ),
+  null,
+)
 
 state(
   merge(

@@ -1,4 +1,4 @@
-import { TransactionStatus } from "./send"
+import { TransactionStatus, transferStatus$ } from "./submit"
 import { ChainId } from "@/api"
 import { truncateString } from "@/utils/string"
 import { allTokens, SupportedTokens } from "@/api/allTokens"
@@ -7,7 +7,6 @@ import { HexString } from "polkadot-api"
 import { allChains } from "@/api"
 
 import { useStateObservable } from "@react-rxjs/core"
-import { transferStatus$ } from "./send"
 import { selectedAccount$ } from "@/services/accounts"
 import { transferAmount$, recipient$, token$ } from "./inputs"
 import { senderChainId$ } from "./select-chain"

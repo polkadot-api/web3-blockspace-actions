@@ -30,10 +30,6 @@ export default function CreateSend() {
 
   const navigate = useNavigate()
 
-  if (!selectedChain) {
-    return <div>Loading...</div>
-  }
-
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault()
     if (!generatedUrl) return
@@ -43,17 +39,24 @@ export default function CreateSend() {
 
   return (
     <div className="flex flex-col text-center items-center ">
-      <h1 className="text-lg my-5 font-semibold">Create a Send Action</h1>
-      <form
-        className="flex flex-col gap-2 min-w-[350px] max-w-[400px] text-left  border-[1px] border-gray-200 rounded-lg p-5 mb-5"
-        onSubmit={handleSubmit}
-      >
-        <SelectChain />
-        <SelectCurrency />
-        <SelectAmount />
-        <SelectRecipient />
-        <Submit />
-      </form>
+      <h1 className="text-lg my-5 font-semibold mb-[30px]">
+        Create a Send Action
+      </h1>
+
+      {!selectedChain ? (
+        <div>Loading...</div>
+      ) : (
+        <form
+          className="flex flex-col gap-2 min-w-[350px] max-w-[400px] text-left border-[1px] border-gray-200 rounded-lg p-5 mb-5"
+          onSubmit={handleSubmit}
+        >
+          <SelectChain />
+          <SelectCurrency />
+          <SelectAmount />
+          <SelectRecipient />
+          <Submit />
+        </form>
+      )}
     </div>
   )
 }
