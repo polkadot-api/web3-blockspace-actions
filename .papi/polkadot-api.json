@@ -37,6 +37,10 @@
     "westendAssetHub": {
       "chain": "westend2_asset_hub",
       "metadata": ".papi/metadata/westendAssetHub.scale"
+    },
+    "westendBridgeHub": {
+      "chain": "westend2_bridge_hub",
+      "metadata": ".papi/metadata/westendBridgeHub.scale"
     }
   }
 }

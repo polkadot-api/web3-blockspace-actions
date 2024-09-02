@@ -1,7 +1,5 @@
-console.log("here")
-import westendBridgeHub from "@polkadot-api/descriptors"
+import { westendBridgeHub } from "@polkadot-api/descriptors"
 
-console.log("Westend brigge hub", westendBridgeHub)
 import { ChainSpec } from "./chainspec"
 import { addParachain } from "./client"
 import { westendChain } from "./westend"
@@ -18,6 +16,5 @@ export const westendBridgeHubClient = createClient(
   getSmProvider(westendBridgeHubChain),
 )
 
-export const westendBridgeHubApi = westendBridgeHubClient.getTypedApi(
-  westendBridgeHub.westendBridgeHub,
-)
+export const westendBridgeHubApi =
+  westendBridgeHubClient.getTypedApi(westendBridgeHub)
