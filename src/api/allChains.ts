@@ -54,7 +54,7 @@ export const allChains = {
     chainSpec: decodedPolkadotSpec,
     api: polkadotApi,
     client: polkadotClient,
-    blockExplorer: "https://www.subscan.io/",
+    blockExplorer: "https://polkadot.subscan.io/",
   },
   polkadotAssetHub: {
     chainSpec: decodedPolkadotAssetHubSpec,

@@ -1,3 +1,5 @@
+import { useState } from "react"
+import clsx from "clsx"
 import { AccountSelector } from "@/components/AccountSelector.tsx"
 import { SupportedTokens, tokenDecimals } from "@/services/balances.ts"
 import { truncateString } from "@/utils/string"
@@ -11,6 +13,7 @@ import Submit from "./Submit"
 import SendSummary from "./SendSummary.tsx"
 import { InvalidInputs, inputErrors$ } from "./inputs.tsx"
 import { senderChainId$ } from "./select-chain"
+import { ArrowRight } from "lucide-react"
 
 import {
   recipient$,
@@ -64,7 +67,7 @@ export default function SendAction() {
         </div>
       </div>
       <div className="flex flex-col min-w-[350px] text-left  border-[1px] border-gray-200 rounded-lg p-5 mb-5">
-        <h2 className="text-lg font-semibold">Sender Details</h2>
+        <h2 className="text-lg font-semibold mb-2">Sender Details</h2>
         <div className="flex flex-row justify-between">
           Account:
           <AccountSelector />
@@ -79,6 +82,8 @@ export default function SendAction() {
 const RouteDisplay = () => {
   const route = useStateObservable(selectedRoute$)
 
+  const [currentStep, setCurrentStep] = useState(0)
+
   // TODO placeholder
   if (!route) return <Submit />
 
@@ -92,9 +97,19 @@ const RouteDisplay = () => {
       <p>Proceed one-by-one:</p>
       <ol>
         {route.map((r, i) => (
-          <li key={i} className="p-2">
-            <h3 className="font-bold">
-              {r.from} ➡️ {r.to}
+          <li
+            key={i}
+            className={clsx(
+              "p-2",
+              i !== currentStep && "opacity-50 pointer-events-none",
+            )}
+          >
+            <h3 className="font-bold flex flex-row justify-center gap-1 items-center mb-2">
+              <span>
+                Step {i + 1}: {r.from}
+              </span>
+              <ArrowRight className="h-5" />
+              <span>{r.to}</span>
             </h3>
             <Submit />
           </li>

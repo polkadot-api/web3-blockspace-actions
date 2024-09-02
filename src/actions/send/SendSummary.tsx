@@ -9,7 +9,12 @@ import { allChains } from "@/api"
 import { useStateObservable } from "@react-rxjs/core"
 import { transferStatus$ } from "./send"
 import { selectedAccount$ } from "@/services/accounts"
-import { transferAmount$, recipient$, token$ } from "./inputs"
+import {
+  transferAmount$,
+  recipient$,
+  token$,
+  recipientChainId$,
+} from "./inputs"
 import { senderChainId$ } from "./select-chain"
 
 export default function SendSummary() {

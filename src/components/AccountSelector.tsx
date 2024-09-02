@@ -78,8 +78,10 @@ const ExtensionPicker = () => {
   const extensions = useStateObservable(extensions$)
 
   return (
-    <div>
-      <p>Select the extension you want to connect with</p>
+    <div className="flex flex-col items-center p-2">
+      <p className="text-md font-semibold my-2">
+        Select the extension you want to connect with
+      </p>
       {extensions.length ? (
         <ul className="flex gap-2 p-2">
           {extensions.map((extension) => (
@@ -122,8 +124,8 @@ const AccountPicker = () => {
   }
 
   return (
-    <div>
-      <p>Select the account</p>
+    <div className="flex flex-col items-center p-2">
+      <p className="text-md font-semibold my-2">Select the account</p>
       <ul className="p-2">
         {accounts.map((account) => (
           <li key={account.address}>

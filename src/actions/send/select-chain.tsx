@@ -101,9 +101,10 @@ export const ChainSelector: React.FC<{
       <div className="font-semibold ">Select a chain</div>
 
       <div className="flex flex-col gap-1 mt-3">
-        {balances.map((balance) => {
+        {balances.map((balance, i) => {
           return (
             <SelectableCard
+              key={i}
               val={balance.chain.id}
               onSelected={changeSenderChainId$}
               isSelected={balance.chain.id === selectedChain}
