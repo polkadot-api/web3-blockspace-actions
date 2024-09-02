@@ -290,7 +290,7 @@ const nativeTokenToParachain =
 const nativeTokenToRelayChain =
   (teleport: Chain["teleport"]) => (dest: string, value: bigint) =>
     teleport({
-      assets: nativeAsset(0, value),
+      assets: nativeAsset(1, value),
       dest: XcmVersionedLocation.V4({
         parents: 1,
         interior: Enum("Here"),
