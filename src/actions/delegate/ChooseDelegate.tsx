@@ -1,6 +1,6 @@
 import { useStateObservable } from "@react-rxjs/core"
 import { Link } from "react-router-dom"
-import { routeChain$ } from "./route-inputs"
+import { routeChain$ } from "./DelegateContext"
 import { truncateString } from "@/utils/string"
 
 const SUPPORTED_DELEGATES: Array<{ address: string; name: string }> = [

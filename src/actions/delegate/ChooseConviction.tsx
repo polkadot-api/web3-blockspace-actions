@@ -8,7 +8,7 @@ import {
 import { createSignal, switchMapSuspended } from "@react-rxjs/utils"
 import { combineLatest, EMPTY, concat, map, take, defer } from "rxjs"
 
-import { routeChain$, routeDelegateAccount$ } from "./route-inputs"
+import { routeChain$, routeDelegateAccount$ } from "./DelegateContext"
 import { selectedAccount$ } from "@/services/accounts"
 import { optimalAmount$ } from "./ChooseAmount"
 import { getTimeLocks } from "@/api/delegation"

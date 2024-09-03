@@ -3,7 +3,7 @@ import {
   routeChain$,
   routeDelegateAccount$,
   useDelegateContext,
-} from "./route-inputs"
+} from "./DelegateContext"
 import { combineLatest, concat, EMPTY, from, map, switchMap, take } from "rxjs"
 import { createSignal, switchMapSuspended } from "@react-rxjs/utils"
 import { getMaxDelegation, getOptimalAmount } from "@/api/delegation"
@@ -11,12 +11,18 @@ import { SS58String } from "polkadot-api"
 import { selectedAccount$ } from "@/services/accounts"
 import { TokenInput } from "@/components/TokenInput"
 import { Button } from "@/components/ui/button"
+import { formatCurrencyWithSymbol } from "@/utils/format-currency"
 
 const [amountInput$, onAmountChange] = createSignal<bigint | null>()
 
 export const optimalAmount$ = state((account: SS58String) =>
   from(getOptimalAmount(account)),
 )
+
+export const maxDelegation$ = selectedAccount$.pipeState(
+  switchMap((account) => (account ? getMaxDelegation(account.address) : EMPTY)),
+)
+
 export const amount$ = state(
   combineLatest([routeChain$, routeDelegateAccount$, selectedAccount$]).pipe(
     switchMapSuspended(([, , account]) => {
@@ -30,10 +36,6 @@ export const amount$ = state(
       )
     }),
   ),
-)
-
-export const maxDelegation$ = selectedAccount$.pipeState(
-  switchMap((account) => (account ? getMaxDelegation(account.address) : EMPTY)),
 )
 
 export const AmountInput: React.FC = () => {
@@ -60,6 +62,11 @@ export const AmountInput: React.FC = () => {
         >
           Max
         </Button>
+        <span className="text-destructive">
+          {!!amount &&
+            amount > freeBalance &&
+            `Too high. Maximum is ${formatCurrencyWithSymbol(freeBalance, decimals, token, { nDecimals: 4 })}`}
+        </span>
       </div>
     </>
   )

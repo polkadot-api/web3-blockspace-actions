@@ -1,101 +1,13 @@
-import {
-  state,
-  Subscribe,
-  SUSPENSE,
-  useStateObservable,
-} from "@react-rxjs/core"
-import {
-  routeChain$,
-  routeDelegateAccount$,
-  useDelegateContext,
-} from "./route-inputs"
-import {
-  combineLatest,
-  concat,
-  EMPTY,
-  map,
-  of,
-  startWith,
-  switchMap,
-} from "rxjs"
-import { delegate, getAddressName } from "@/api/delegation"
-import { selectedAccount$ } from "@/services/accounts"
+import { Subscribe, useStateObservable } from "@react-rxjs/core"
+import { routeChain$, routeDelegateAccount$ } from "./DelegateContext"
+import { EMPTY, startWith, switchMap } from "rxjs"
+import { getAddressName } from "@/api/delegation"
 import { FeesAndSubmit } from "./FeesAndSubmit"
-import {
-  ConvictionInput,
-  conviction$,
-  convictionVotes,
-} from "./ChooseConviction"
-import { AmountInput, amount$, maxDelegation$ } from "./ChooseAmount"
-import { parsedTrack$, SelectTracks } from "./ChooseTracks"
+import { ConvictionInput } from "./ChooseConviction"
+import { AmountInput } from "./ChooseAmount"
+import { SelectTracks } from "./ChooseTracks"
 import { Warnings } from "./Warnings"
-import { DelegateProvider } from "./route-inputs"
-
-const delegateTx$ = state(
-  combineLatest([
-    selectedAccount$,
-    routeDelegateAccount$,
-    conviction$.pipe(map((x) => (x === SUSPENSE ? null : x))),
-    amount$.pipe(map((x) => (x === SUSPENSE ? null : x))),
-    parsedTrack$,
-    maxDelegation$,
-  ]).pipe(
-    map(
-      ([
-        selectedAccount,
-        delegateAccount,
-        conviction,
-        amount,
-        tracks,
-        maxDelegation,
-      ]) => {
-        return !selectedAccount ||
-          !delegateAccount ||
-          conviction == null ||
-          amount == null
-          ? null
-          : ([
-              selectedAccount.address,
-              delegateAccount,
-              conviction,
-              amount,
-              tracks,
-              maxDelegation,
-            ] as const)
-      },
-    ),
-    switchMap((x) => {
-      if (x === null) return of(null)
-      const [from, target, conviction, amount, tracks, maxDelegation] = x
-      if (tracks.length === 0 || amount === 0n || amount > maxDelegation)
-        return of(null)
-
-      return concat(
-        of(null),
-        delegate(from, target, convictionVotes[conviction], amount, tracks),
-      )
-    }),
-  ),
-  null,
-)
-
-const Delegate: React.FC = () => {
-  const tx = useStateObservable(delegateTx$)
-  const selectedAccount = useStateObservable(selectedAccount$)!
-
-  const { decimals, token } = useDelegateContext()
-
-  return (
-    <FeesAndSubmit
-      txCall={tx}
-      account={selectedAccount}
-      decimals={decimals}
-      ticker={token}
-    >
-      Delegate
-    </FeesAndSubmit>
-  )
-}
+import { DelegateProvider } from "./DelegateContext"
 
 const delegateName$ = routeDelegateAccount$.pipeState(
   switchMap((x) => (x ? getAddressName(x) : EMPTY)),
@@ -119,7 +31,7 @@ export const DelegateAction = () => {
             <ConvictionInput />
             <SelectTracks />
             <Warnings />
-            <Delegate />
+            <FeesAndSubmit>Delegate</FeesAndSubmit>
           </DelegateProvider>
         </div>
       </Subscribe>

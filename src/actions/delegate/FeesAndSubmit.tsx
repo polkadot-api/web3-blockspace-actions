@@ -1,3 +1,14 @@
+import React, {
+  MutableRefObject,
+  PropsWithChildren,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
+import { concat, map, of, switchMap, combineLatest } from "rxjs"
+import { state, SUSPENSE, useStateObservable } from "@react-rxjs/core"
+import { PolkadotSigner, Transaction } from "polkadot-api"
+
 import {
   Dialog,
   DialogContent,
@@ -6,35 +17,65 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { PolkadotSigner, Transaction } from "polkadot-api"
-import React, {
-  MutableRefObject,
-  PropsWithChildren,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
-import { cn, formatCurrency } from "@/utils/format-currency"
-import { InjectedPolkadotAccount } from "polkadot-api/pjs-signer"
+import { cn } from "@/utils/format-currency"
 import { truncateString } from "@/utils/string"
+import { routeDelegateAccount$ } from "./DelegateContext"
+import { delegate } from "@/api/delegation"
+import { selectedAccount$ } from "@/services/accounts"
 
-const FormattedToken: React.FC<{
-  ticker: string
-  decimals: number
-  value: bigint | null
-}> = ({ ticker, decimals, value }) => {
-  return (
-    <>
-      {value === null
-        ? "Loading..."
-        : formatCurrency(value, decimals, {
-            nDecimals: 4,
-          }) +
-          " " +
-          ticker}
-    </>
-  )
-}
+import { FormattedToken } from "./FormattedToken"
+import { conviction$, convictionVotes } from "./ChooseConviction"
+import { amount$, maxDelegation$ } from "./ChooseAmount"
+import { parsedTrack$ } from "./ChooseTracks"
+import { useDelegateContext } from "./DelegateContext"
+
+const delegateTx$ = state(
+  combineLatest([
+    selectedAccount$,
+    routeDelegateAccount$,
+    conviction$.pipe(map((x) => (x === SUSPENSE ? null : x))),
+    amount$.pipe(map((x) => (x === SUSPENSE ? null : x))),
+    parsedTrack$,
+    maxDelegation$,
+  ]).pipe(
+    map(
+      ([
+        selectedAccount,
+        delegateAccount,
+        conviction,
+        amount,
+        tracks,
+        maxDelegation,
+      ]) => {
+        return !selectedAccount ||
+          !delegateAccount ||
+          conviction == null ||
+          amount == null
+          ? null
+          : ([
+              selectedAccount.address,
+              delegateAccount,
+              conviction,
+              amount,
+              tracks,
+              maxDelegation,
+            ] as const)
+      },
+    ),
+    switchMap((x) => {
+      if (x === null) return of(null)
+      const [from, target, conviction, amount, tracks, maxDelegation] = x
+      if (tracks.length === 0 || amount === 0n || amount > maxDelegation)
+        return of(null)
+
+      return concat(
+        of(null),
+        delegate(from, target, convictionVotes[conviction], amount, tracks),
+      )
+    }),
+  ),
+  null,
+)
 
 const SubmitDialog: React.FC<
   PropsWithChildren<{
@@ -121,14 +162,12 @@ const SubmitDialog: React.FC<
   )
 }
 
-export const FeesAndSubmit: React.FC<
-  PropsWithChildren<{
-    txCall: Transaction<any, any, any, any> | null
-    account: InjectedPolkadotAccount
-    decimals: number
-    ticker: string
-  }>
-> = ({ decimals, ticker, account, txCall, children }) => {
+export const FeesAndSubmit: React.FC<PropsWithChildren> = ({ children }) => {
+  const txCall = useStateObservable(delegateTx$)
+  const account = useStateObservable(selectedAccount$)!
+
+  const { decimals, token } = useDelegateContext()
+
   const [fees, setFees] = useState<bigint | null>()
   const signSubmitAndWatch =
     useRef<Transaction<any, any, any, any>["signSubmitAndWatch"]>()
@@ -163,11 +202,7 @@ export const FeesAndSubmit: React.FC<
           </span>
           <span>
             {fees ? (
-              <FormattedToken
-                ticker={ticker}
-                decimals={decimals}
-                value={fees}
-              />
+              <FormattedToken ticker={token} decimals={decimals} value={fees} />
             ) : (
               txCall && "Loading"
             )}
