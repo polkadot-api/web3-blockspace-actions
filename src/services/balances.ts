@@ -29,7 +29,7 @@ export interface Chain {
   ) => Promise<{ balance: bigint } | null>
 }
 
-export const chains: Chain[] = [
+export const chainBalances: Chain[] = [
   {
     id: "polkadot",
     nativeToken: "DOT",
@@ -104,7 +104,7 @@ export const chains: Chain[] = [
 
 const isNotNil = <T>(v: T | null) => v != null
 export const findBalances$ = (token: SupportedTokens, address: string) =>
-  combineLatest(chains.map(getBalance$(token, address))).pipe(
+  combineLatest(chainBalances.map(getBalance$(token, address))).pipe(
     map((v) => v.filter(isNotNil)),
   )
 

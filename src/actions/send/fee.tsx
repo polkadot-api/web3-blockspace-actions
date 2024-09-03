@@ -11,7 +11,7 @@ import {
 } from "./inputs"
 import { selectedAccount$ } from "@/services/accounts"
 import { findRoute } from "./transfers"
-import { errorToast } from "./toast"
+import { errorToast } from "@/utils/toast"
 
 export const feeEstimation$ = state(
   (senderChain: ChainId) =>

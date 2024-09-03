@@ -24,7 +24,7 @@ import {
   recipient$,
   transferAmount$,
 } from "./inputs"
-import { errorToast, successToast } from "./toast"
+import { errorToast, successToast } from "@/utils/toast"
 import { predefinedTransfers } from "./transfers"
 import { senderChainId$ } from "./select-chain"
 
