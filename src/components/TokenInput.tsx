@@ -1,10 +1,7 @@
 import { FC, useEffect, useRef } from "react"
 import { twMerge } from "tailwind-merge"
-import {
-  formatValue,
-  fractionalSeparator,
-  thousandsSeparator,
-} from "./token-formatter"
+import { fractionalSeparator, thousandsSeparator } from "./token-formatter"
+import { formatCurrency } from "@/utils/format-currency"
 
 export const TokenInput: FC<{
   value?: bigint | null
@@ -23,7 +20,8 @@ export const TokenInput: FC<{
     const currentValue = parseValue(ref.current.value, token.decimals).value
     if (value === currentValue) return
 
-    ref.current.value = value == null ? "" : formatValue(value, token.decimals)
+    ref.current.value =
+      value == null ? "" : formatCurrency(value, token.decimals)
   }, [value, token.decimals])
 
   const handleChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
