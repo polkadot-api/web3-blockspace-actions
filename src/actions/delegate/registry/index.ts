@@ -1,0 +1,6 @@
+export * as bifrostKusama from "./bifrost-kusama"
+export * as governance2NovasamaTestnet from "./governance2-novasama-testnet"
+export * as kusama from "./kusama"
+export * as moonbeam from "./moonbeam"
+export * as moonriver from "./moonriver"
+export * as polkadot from "./polkadot"

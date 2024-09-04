@@ -21,6 +21,8 @@ const fetchJSONFiles = async () => {
     if (response.ok) {
       const files = await response.json()
       console.log("files", files)
+
+      let indexFile = ""
       for (const file of files) {
         if (file.name.endsWith(".json")) {
           const fileUrl = file.download_url
@@ -28,19 +30,20 @@ const fetchJSONFiles = async () => {
 
           const fileResponse = await fetch(fileUrl)
 
+          const fileName = file.name.split(".")[0].split(" ").join("-")
           if (fileResponse.ok) {
             const fileData = await fileResponse.text()
             fs.writeFileSync(
-              destinationDir +
-                file.name.split(".")[0].split(" ").join("-") +
-                ".ts",
+              destinationDir + fileName + ".ts",
               "export default " + fileData,
             )
+            indexFile += `export * as ${snakeToCamel(fileName)} from "./${fileName}" \n`
           } else {
             console.error(`Failed to download ${file.name}`)
           }
         }
       }
+      fs.writeFileSync(destinationDir + "index.ts", indexFile)
     } else {
       console.error(
         `Failed to get contents of the folder. Status code: ${response.status}`,
@@ -52,3 +55,9 @@ const fetchJSONFiles = async () => {
 }
 
 fetchJSONFiles()
+
+function snakeToCamel(snakeStr: string): string {
+  return snakeStr
+    .toLowerCase() // Ensure the string is in lowercase
+    .replace(/-./g, (match) => match.charAt(1).toUpperCase()) // Convert each _x to X
+}
