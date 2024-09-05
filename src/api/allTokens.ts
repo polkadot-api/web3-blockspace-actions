@@ -4,6 +4,7 @@ export const allTokens = {
   USDC: { decimals: 6 },
   WND: { decimals: 12 },
   ROC: { decimals: 12 },
+  KSM: { decimals: 12 },
 } as const
 
 export type SupportedTokens = keyof typeof allTokens

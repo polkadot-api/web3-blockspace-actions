@@ -41,6 +41,10 @@
     "westendBridgeHub": {
       "chain": "westend2_bridge_hub",
       "metadata": ".papi/metadata/westendBridgeHub.scale"
+    },
+    "kusama": {
+      "chain": "ksmcc3",
+      "metadata": ".papi/metadata/kusama.scale"
     }
   }
 }

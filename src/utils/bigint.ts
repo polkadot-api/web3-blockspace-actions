@@ -17,3 +17,5 @@ export const divideBigInt = (
 }
 
 export const abs = (num: bigint) => (num < 0 ? -num : num)
+
+export const maxBigint = (a: bigint, b: bigint) => (a > b ? a : b)

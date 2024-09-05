@@ -1,6 +1,8 @@
 import { getSs58AddressInfo } from "polkadot-api"
 import { delegateMap } from "./registry"
 
+export const supportedChains = Object.keys(delegateMap)
+
 export const isChainValid = (chainId: string) => chainId in delegateMap
 
 export const isAddressValid = (addr: string) => {

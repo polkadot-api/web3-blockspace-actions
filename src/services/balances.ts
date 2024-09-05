@@ -1,115 +1,17 @@
-import {
-  ChainId,
-  polkadotApi,
-  polkadotAssetHubApi,
-  polkadotBridgeHubApi,
-  polkadotCollectivesApi,
-  polkadotPeopleApi,
-} from "@/api"
+import { listChains } from "@/api"
 import { SupportedTokens } from "@/api/allTokens"
-import { rococoApi } from "@/api/rococo"
-import { rococoAssetHubApi } from "@/api/rococoAssetHub"
-import { westendApi } from "@/api/westend"
-import { westendAssetHubApi } from "@/api/westendAssetHub"
-import { westendBridgeHubApi } from "@/api/westendBridgeHub"
+import { maxBigint } from "@/utils/bigint"
 import { combineLatest, distinctUntilChanged, from, map, startWith } from "rxjs"
-
-type GetAccountResult = ReturnType<
-  typeof polkadotApi.query.System.Account.getValue
->
-export interface Chain {
-  id: ChainId
-  nativeToken: SupportedTokens
-  supportedTokens?: SupportedTokens[]
-  getSystemAccount: (address: string) => GetAccountResult
-  getED: () => Promise<bigint>
-  getAssetBalance?: (
-    asset: "USDT" | "USDC",
-    address: string,
-  ) => Promise<{ balance: bigint } | null>
-}
-
-export const chainBalances: Chain[] = [
-  {
-    id: "polkadot",
-    nativeToken: "DOT",
-    getSystemAccount: polkadotApi.query.System.Account.getValue,
-    getED: polkadotApi.constants.Balances.ExistentialDeposit,
-  },
-  {
-    id: "polkadotAssetHub",
-    nativeToken: "DOT",
-    supportedTokens: ["USDC", "USDT"],
-    getSystemAccount: polkadotAssetHubApi.query.System.Account.getValue,
-    getED: polkadotAssetHubApi.constants.Balances.ExistentialDeposit,
-    getAssetBalance: async (asset, addr) => {
-      const res = await polkadotAssetHubApi.query.Assets.Account.getValue(
-        assetHubTokenIds[asset],
-        addr,
-      )
-      return res?.status.type !== "Liquid" ? null : res
-    },
-  },
-  {
-    id: "polkadotBridgeHub",
-    nativeToken: "DOT",
-    getSystemAccount: polkadotBridgeHubApi.query.System.Account.getValue,
-    getED: polkadotBridgeHubApi.constants.Balances.ExistentialDeposit,
-  },
-  {
-    id: "polkadotCollectives",
-    nativeToken: "DOT",
-    getSystemAccount: polkadotCollectivesApi.query.System.Account.getValue,
-    getED: polkadotCollectivesApi.constants.Balances.ExistentialDeposit,
-  },
-  {
-    id: "polkadotPeople",
-    nativeToken: "DOT",
-    getSystemAccount: polkadotPeopleApi.query.System.Account.getValue,
-    getED: polkadotPeopleApi.constants.Balances.ExistentialDeposit,
-  },
-  {
-    id: "rococo",
-    nativeToken: "ROC",
-    getSystemAccount: rococoApi.query.System.Account.getValue,
-    getED: rococoApi.constants.Balances.ExistentialDeposit,
-  },
-  {
-    id: "rococoAssetHub",
-    nativeToken: "ROC",
-    supportedTokens: ["WND"],
-    getSystemAccount: rococoAssetHubApi.query.System.Account.getValue,
-    getED: rococoAssetHubApi.constants.Balances.ExistentialDeposit,
-  },
-  {
-    id: "westend",
-    nativeToken: "WND",
-    getSystemAccount: westendApi.query.System.Account.getValue,
-    getED: westendApi.constants.Balances.ExistentialDeposit,
-  },
-  {
-    id: "westendAssetHub",
-    nativeToken: "WND",
-    supportedTokens: ["ROC"],
-    getSystemAccount: westendAssetHubApi.query.System.Account.getValue,
-    getED: westendAssetHubApi.constants.Balances.ExistentialDeposit,
-  },
-  {
-    id: "westendBridgeHub",
-    nativeToken: "WND",
-    getSystemAccount: westendBridgeHubApi.query.System.Account.getValue,
-    getED: westendBridgeHubApi.constants.Balances.ExistentialDeposit,
-  },
-]
+import { Chain } from "@/api"
 
 const isNotNil = <T>(v: T | null) => v != null
 export const findBalances$ = (token: SupportedTokens, address: string) =>
-  combineLatest(chainBalances.map(getBalance$(token, address))).pipe(
+  combineLatest(listChains.map(getBalance$(token, address))).pipe(
     map((v) => v.filter(isNotNil)),
   )
 
 const getBalance$ =
-  (token: SupportedTokens, address: string) => (chain: Chain) =>
+  (token: SupportedTokens, address: string) => (chain: Chain<any>) =>
     from(getBalance(chain, token, address)).pipe(
       startWith(null),
       distinctUntilChanged(),
@@ -124,7 +26,7 @@ const getBalance$ =
     )
 
 const getBalance = async (
-  chain: Chain,
+  chain: Chain<any>,
   token: SupportedTokens,
   address: string,
 ) => {
@@ -171,4 +73,3 @@ function getTransferableBalance(
     maxBigint(account.data.frozen - account.data.reserved, existentialDeposit)
   )
 }
-const maxBigint = (a: bigint, b: bigint) => (a > b ? a : b)

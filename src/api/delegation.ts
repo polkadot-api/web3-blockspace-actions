@@ -1,5 +1,5 @@
 import { Enum, SS58String } from "polkadot-api"
-import { polkadotApi as api, polkadotPeopleApi } from "./"
+import { allChains, polkadotApi as api, ChainId, polkadotPeopleApi } from "./"
 import { MultiAddress, VotingConviction } from "@polkadot-api/descriptors"
 import { truncateString } from "@/utils/string"
 
@@ -22,6 +22,7 @@ interface Delegating {
 }
 
 export const getTimeLocks = async (): Promise<string[]> => {
+  // TODO: Generalise for all chains
   const [blockTimeSeconds, lockedBlocks] = await Promise.all([
     api.constants.Babe.ExpectedBlockTime(),
     api.constants.ConvictionVoting.VoteLockingPeriod(),
@@ -100,6 +101,7 @@ export const getTrackInfo = async (
 }
 
 export const getAddressName = async (addr: string): Promise<string> => {
+  // TODO: Multichain
   const id = await polkadotPeopleApi.query.Identity.IdentityOf.getValue(addr)
   if (id == null || id[0].info.display.value == null)
     return truncateString(addr, 12)
