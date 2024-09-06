@@ -1,7 +1,7 @@
 import { routeMatch$ } from "@/router"
 import { map } from "rxjs"
 import { state, useStateObservable } from "@react-rxjs/core"
-import { allChains, ChainId } from "@/api"
+import { allChains, ChainId, DelegatableChain } from "@/api"
 import { isAddressValid, isChainValid } from "./utils"
 import { SS58String } from "polkadot-api"
 import { useContext, createContext, PropsWithChildren } from "react"
@@ -40,8 +40,8 @@ export type DelegateContextType = {
   delegateAccountId: SS58String
   token: SupportedTokens
   decimals: number
+  chain: DelegatableChain
 }
-
 export const DelegateContext = createContext<DelegateContextType | null>(null)
 
 export const DelegateProvider: React.FC<PropsWithChildren> = ({ children }) => {
@@ -49,7 +49,7 @@ export const DelegateProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const delegateAccountId = useStateObservable(routeDelegateAccount$)
   const chain = chainId ? allChains[chainId] : null
 
-  return !chainId || !chain || !delegateAccountId ? (
+  return !chainId || !chain || !("delegate" in chain) || !delegateAccountId ? (
     "Invalid URL parameters. Please check"
   ) : (
     <DelegateContext.Provider
@@ -58,6 +58,7 @@ export const DelegateProvider: React.FC<PropsWithChildren> = ({ children }) => {
         delegateAccountId,
         token: chain.nativeToken,
         decimals: allTokens[chain.nativeToken].decimals,
+        chain,
       }}
     >
       {children}

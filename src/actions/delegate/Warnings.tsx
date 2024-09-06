@@ -1,6 +1,6 @@
 import { useStateObservable } from "@react-rxjs/core"
 import { map, of, switchMap } from "rxjs"
-import { getTrackInfo } from "@/api/delegation"
+import { getTrackInfo } from "./ChooseTracks"
 import { selectedAccount$ } from "@/services/accounts"
 import { truncateString } from "@/utils/string"
 

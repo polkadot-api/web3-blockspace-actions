@@ -8,10 +8,14 @@ import {
 import { createSignal, switchMapSuspended } from "@react-rxjs/utils"
 import { combineLatest, EMPTY, concat, map, take, defer } from "rxjs"
 
-import { routeChain$, routeDelegateAccount$ } from "./DelegateContext"
+import {
+  routeChain$,
+  routeDelegateAccount$,
+  useDelegateContext,
+} from "./DelegateContext"
 import { selectedAccount$ } from "@/services/accounts"
 import { optimalAmount$ } from "./ChooseAmount"
-import { getTimeLocks } from "@/api/delegation"
+import { DelegatableChain } from "@/api"
 
 export const convictionVotes: Array<VotingConviction["type"]> = [
   "None",
@@ -22,6 +26,45 @@ export const convictionVotes: Array<VotingConviction["type"]> = [
   "Locked5x",
   "Locked6x",
 ]
+
+export const getTimeLocks = async (
+  chain: DelegatableChain,
+): Promise<string[]> => {
+  const [blockTimeSeconds, lockedBlocks] = await Promise.all([
+    chain.delegate.getExpectedBlockTime(),
+    chain.delegate.getVoteLockingPeriod(),
+  ]).then(([milis, locked]) => [Number(milis / 1000n), locked])
+
+  return Array(7)
+    .fill(null)
+    .map((_, conviction) => {
+      if (conviction === 0) return "No lock"
+      const hoursToUnlock = Math.ceil(
+        (blockTimeSeconds * lockedBlocks * 2 ** (conviction - 1)) / 60 / 60,
+      )
+      const hoursToPrint = hoursToUnlock % 24
+      const daysToPrint = ((hoursToUnlock - hoursToPrint) / 24) % 7
+      const weeksToPrint =
+        (hoursToUnlock - hoursToPrint - daysToPrint * 24) / 24 / 7
+      let returnStr = ""
+      let started = false
+      if (weeksToPrint) {
+        started = true
+        returnStr += `${weeksToPrint} week${weeksToPrint > 1 ? "s" : ""}`
+      }
+      if (daysToPrint) {
+        if (started) returnStr += `, `
+        else started = true
+        returnStr += `${daysToPrint} days`
+      }
+      if (hoursToPrint) {
+        if (started) returnStr += `, `
+        else started = true
+        returnStr += `${hoursToPrint} hours`
+      }
+      return returnStr
+    })
+}
 
 const [convictionInput$, onConvictionInputChanges] = createSignal<
   0 | 1 | 2 | 3 | 4 | 5 | 6
@@ -43,10 +86,12 @@ export const conviction$: StateObservable<
   ),
 )
 
-export const convictions$ = state(defer(getTimeLocks))
+export const convictions$ = (chain: DelegatableChain) =>
+  state(defer(() => getTimeLocks(chain)))
 
 export const ConvictionInput: React.FC = () => {
-  const convictions = useStateObservable(convictions$)
+  const { chain } = useDelegateContext()
+  const convictions = useStateObservable(convictions$(chain))
   const conviction = useStateObservable(conviction$)
   return (
     <>

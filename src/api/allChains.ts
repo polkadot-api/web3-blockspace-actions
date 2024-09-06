@@ -51,6 +51,17 @@ type GetAccountResult = ReturnType<
   typeof polkadotApi.query.System.Account.getValue
 >
 
+type VotesType = Awaited<
+  ReturnType<typeof polkadotApi.query.ConvictionVoting.VotingFor.getEntries>
+>
+
+export interface DelegationFunctions {
+  getExpectedBlockTime: () => Promise<bigint>
+  getVoteLockingPeriod: () => Promise<number>
+  getConvictionVotes: (address: SS58String) => Promise<VotesType>
+  // getStakingAmount: (address: SS58String, at: string) => Promise<bigint>
+}
+
 export interface Chain<T extends ChainDefinition> {
   chainSpec: Promise<ChainSpec>
   nativeToken: SupportedTokens
@@ -64,6 +75,7 @@ export interface Chain<T extends ChainDefinition> {
   api: TypedApi<T>
   client: PolkadotClient
   blockExplorer: String
+  delegate?: DelegationFunctions
 }
 
 export type ChainId =
@@ -89,6 +101,14 @@ export const allChains = {
     api: polkadotApi,
     client: polkadotClient,
     blockExplorer: "https://polkadot.subscan.io/",
+    delegate: {
+      getExpectedBlockTime: () =>
+        polkadotApi.constants.Babe.ExpectedBlockTime(),
+      getVoteLockingPeriod: () =>
+        polkadotApi.constants.ConvictionVoting.VoteLockingPeriod(),
+      getConvictionVotes: (address: SS58String) =>
+        polkadotApi.query.ConvictionVoting.VotingFor.getEntries(address),
+    },
   },
   polkadotAssetHub: {
     nativeToken: "DOT",
@@ -196,10 +216,21 @@ export const allChains = {
     api: kusamaApi,
     client: kusamaClient,
     blockExplorer: "https://kusama.subscan.io/",
+    delegate: {
+      getExpectedBlockTime: () => kusamaApi.constants.Babe.ExpectedBlockTime(),
+      getVoteLockingPeriod: () =>
+        kusamaApi.constants.ConvictionVoting.VoteLockingPeriod(),
+      getConvictionVotes: (address: SS58String) =>
+        kusamaApi.query.ConvictionVoting.VotingFor.getEntries(address),
+    },
   },
 } satisfies Record<ChainId, Chain<ChainDefinition>>
 
 export type AllChainApis = (typeof allChains)[ChainId]["api"]
+
+export type DelegatableChain = Chain<ChainDefinition> & {
+  delegate: DelegationFunctions
+}
 
 export const listChains = Object.entries(allChains)
   .map(([key, value]) => ({
