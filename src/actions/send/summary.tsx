@@ -1,4 +1,3 @@
-import { TransactionStatus, transferStatus$ } from "./submit"
 import { ChainId } from "@/api"
 import { truncateString } from "@/utils/string"
 import { allTokens, SupportedTokens } from "@/api/allTokens"
@@ -10,6 +9,7 @@ import { useStateObservable } from "@react-rxjs/core"
 import { selectedAccount$ } from "@/services/accounts"
 import { transferAmount$, recipient$, token$ } from "./inputs"
 import { senderChainId$ } from "./select-chain"
+import { TransactionStatus, transferStatus$ } from "./submit"
 
 export default function SendSummary() {
   const transferAmount = useStateObservable(transferAmount$)

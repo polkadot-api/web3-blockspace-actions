@@ -57,10 +57,12 @@ export const AmountInput: React.FC = () => {
   const amount = useStateObservable(amount$)
   const freeBalance = useStateObservable(maxDelegation$(chain))
 
+  const hasAvailableBalance = freeBalance && freeBalance > 0n
+
   return (
     <>
       <h2 className="font-bold">Amount to delegate:</h2>
-      <div className="flex flex-col gap-2 items-start">
+      <div className="flex flex-row gap-2 items-start">
         <TokenInput
           value={amount}
           onChange={onAmountChange}
@@ -68,14 +70,21 @@ export const AmountInput: React.FC = () => {
             name: token,
             decimals: decimals,
           }}
+          // disabled={!hasAvailableBalance}
         />
         <Button
           onClick={() => {
             onAmountChange(freeBalance)
           }}
+          disabled={!hasAvailableBalance}
         >
           Max
         </Button>
+      </div>
+      <div>
+        <span className="text-destructive">
+          {freeBalance === 0n && "No available balance to delegate."}
+        </span>
         <span className="text-destructive">
           {!!amount &&
             amount > freeBalance &&

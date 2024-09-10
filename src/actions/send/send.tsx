@@ -93,7 +93,7 @@ export default function SendAction() {
 const RouteDisplay = () => {
   const route = useStateObservable(selectedRoute$)
 
-  const [currentStep, setCurrentStep] = useState(0)
+  const [currentStep] = useState(0)
 
   // TODO placeholder
   if (!route) return <Submit />
