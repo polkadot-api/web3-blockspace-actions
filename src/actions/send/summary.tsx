@@ -19,11 +19,13 @@ export default function SendSummary() {
   const from = useStateObservable(selectedAccount$)
   const chainId = useStateObservable(senderChainId$)
 
+  const txHash = transferStatus?.txHash
+
   const isFinalized =
     transferStatus &&
     transferStatus.status === TransactionStatus.Finalized &&
     transferStatus.ok &&
-    "txHash" in transferStatus
+    !!txHash
 
   if (!isFinalized || !token || !from || !to || !chainId) return null
 
@@ -53,7 +55,7 @@ export default function SendSummary() {
             <a
               className="underline text-pink"
               target="_blank"
-              href={transactionUrl(chainId, transferStatus.txHash)}
+              href={transactionUrl(chainId, transferStatus.txHash!)}
             >
               {truncateString(transferStatus.txHash!, 8)}
             </a>

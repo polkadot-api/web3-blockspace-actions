@@ -8,7 +8,12 @@ import {
   withLatestFrom,
   tap,
 } from "rxjs"
-import { state, useStateObservable, withDefault } from "@react-rxjs/core"
+import {
+  state,
+  StateObservable,
+  useStateObservable,
+  withDefault,
+} from "@react-rxjs/core"
 import { createSignal } from "@react-rxjs/utils"
 import { twMerge } from "tailwind-merge"
 import * as Progress from "@radix-ui/react-progress"
@@ -27,6 +32,7 @@ import {
 import { errorToast, successToast } from "@/utils/toast"
 import { predefinedTransfers } from "./transfers"
 import { senderChainId$ } from "./select-chain"
+import { HexString } from "polkadot-api"
 
 export const [onSubmitted$, submitTransfer$] = createSignal()
 
@@ -60,12 +66,20 @@ const tx$ = state(
 
 export enum TransactionStatus {
   Signing = 5,
+  Signed = 10,
   Broadcasted = 25,
   BestBlock = 50,
   Finalized = 100,
 }
 
-export const transferStatus$ = state(
+type TransferStatus = {
+  ok: boolean
+  status: TransactionStatus
+  number?: number | null
+  txHash?: HexString
+}
+
+export const transferStatus$: StateObservable<TransferStatus | null> = state(
   onSubmitted$.pipe(
     withLatestFrom(tx$, selectedAccount$),
     switchMap(([, tx, selectedAccount]) => {
@@ -75,6 +89,10 @@ export const transferStatus$ = state(
         map((v) => {
           switch (v.type) {
             case "signed":
+              return {
+                ok: true,
+                status: TransactionStatus.Signed,
+              }
             case "broadcasted":
               return {
                 ok: true,
@@ -168,6 +186,7 @@ const progress$ = transferStatus$.pipeState(
 
 const transactionStatusLabel: Record<TransactionStatus, string> = {
   [TransactionStatus.Signing]: "Signing",
+  [TransactionStatus.Signed]: "Signed correctly. Broadcasting",
   [TransactionStatus.Broadcasted]:
     "Broadcasting complete. Sending to best blocks",
   [TransactionStatus.BestBlock]: "In best block state: ",
