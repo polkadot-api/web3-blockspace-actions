@@ -32,6 +32,7 @@ export const getTracks = async (): Promise<Record<number, string>> =>
 export const getTrackInfo = async (
   address: SS58String,
 ): Promise<Record<number, Casting | Delegating>> => {
+  // todo: make multichain
   const convictionVoting =
     await api.query.ConvictionVoting.VotingFor.getEntries(address)
 

@@ -84,7 +84,6 @@ export const conviction$: StateObservable<
       )
     }),
   ),
-  0,
 )
 
 export const convictions$ = state((chain: DelegatableChain) =>

@@ -1,5 +1,5 @@
 import { Enum, SS58String } from "polkadot-api"
-import { polkadotApi as api, DelegatableChain, polkadotPeopleApi } from "./"
+import { polkadotApi, DelegatableChain, polkadotPeopleApi } from "./"
 import { VotingConviction } from "@polkadot-api/descriptors"
 import { truncateString } from "@/utils/string"
 import { getTrackInfo } from "@/actions/delegate/ChooseTracks"
@@ -18,14 +18,14 @@ export const delegate = async (
   conviction: VotingConviction["type"],
   amount: bigint,
   tracks: Array<number>,
-  { delegate }: DelegatableChain,
+  { delegate, api }: DelegatableChain,
 ) => {
   const tracksInfo = await getTrackInfo(from)
 
   const txs: Array<
-    | ReturnType<typeof api.tx.ConvictionVoting.remove_vote>
-    | ReturnType<typeof api.tx.ConvictionVoting.undelegate>
-    | ReturnType<typeof api.tx.ConvictionVoting.delegate>
+    | ReturnType<typeof polkadotApi.tx.ConvictionVoting.remove_vote>
+    | ReturnType<typeof polkadotApi.tx.ConvictionVoting.undelegate>
+    | ReturnType<typeof polkadotApi.tx.ConvictionVoting.delegate>
   > = []
   tracks.forEach((trackId) => {
     const trackInfo = tracksInfo[trackId]
@@ -49,7 +49,7 @@ export const delegate = async (
     txs.push(delegate.delegate(trackId, Enum(conviction), target, amount))
   })
 
-  return api.tx.Utility.batch_all({
+  return polkadotApi.tx.Utility.batch_all({
     calls: txs.map((tx) => tx.decodedCall),
   })
 }

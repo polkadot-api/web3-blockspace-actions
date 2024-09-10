@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react"
-import { concat, map, of, switchMap, combineLatest } from "rxjs"
+import { concat, map, of, switchMap, combineLatest, startWith } from "rxjs"
 import { state, SUSPENSE, useStateObservable } from "@react-rxjs/core"
 import { PolkadotSigner, Transaction } from "polkadot-api"
 
@@ -30,61 +30,60 @@ import { parsedTrack$ } from "./ChooseTracks"
 import { useDelegateContext } from "./DelegateContext"
 import { DelegatableChain } from "@/api"
 
-const delegateTx$ = (chain: DelegatableChain) =>
-  state(
-    combineLatest([
-      selectedAccount$,
-      routeDelegateAccount$,
-      conviction$.pipe(map((x) => (x === SUSPENSE ? null : x))),
-      amount$.pipe(map((x) => (x === SUSPENSE ? null : x))),
-      parsedTrack$,
-      maxDelegation$(chain),
-    ]).pipe(
-      map(
-        ([
-          selectedAccount,
-          delegateAccount,
-          conviction,
+const delegateTx$ = state((chain: DelegatableChain) =>
+  combineLatest([
+    selectedAccount$,
+    routeDelegateAccount$,
+    conviction$.pipe(map((x) => (x === SUSPENSE ? null : x))),
+    amount$.pipe(map((x) => (x === SUSPENSE ? null : x))),
+    parsedTrack$,
+    maxDelegation$(chain).pipe(startWith(0n)),
+  ]).pipe(
+    map(
+      ([
+        selectedAccount,
+        delegateAccount,
+        conviction,
+        amount,
+        tracks,
+        maxDelegation,
+      ]) => {
+        return !selectedAccount ||
+          !delegateAccount ||
+          conviction == null ||
+          amount == null
+          ? null
+          : ([
+              selectedAccount.address,
+              delegateAccount,
+              conviction,
+              amount,
+              tracks,
+              maxDelegation,
+            ] as const)
+      },
+    ),
+    switchMap((x) => {
+      if (x === null) return of(null)
+      const [from, target, conviction, amount, tracks, maxDelegation] = x
+
+      if (tracks.length === 0 || amount === 0n || amount > maxDelegation)
+        return of(null)
+
+      return concat(
+        of(null),
+        delegate(
+          from,
+          target,
+          convictionVotes[conviction],
           amount,
           tracks,
-          maxDelegation,
-        ]) => {
-          return !selectedAccount ||
-            !delegateAccount ||
-            conviction == null ||
-            amount == null
-            ? null
-            : ([
-                selectedAccount.address,
-                delegateAccount,
-                conviction,
-                amount,
-                tracks,
-                maxDelegation,
-              ] as const)
-        },
-      ),
-      switchMap((x) => {
-        if (x === null) return of(null)
-        const [from, target, conviction, amount, tracks, maxDelegation] = x
-        if (tracks.length === 0 || amount === 0n || amount > maxDelegation)
-          return of(null)
-
-        return concat(
-          of(null),
-          delegate(
-            from,
-            target,
-            convictionVotes[conviction],
-            amount,
-            tracks,
-            chain,
-          ),
-        )
-      }),
-    ),
-    null,
-  )
+          chain,
+        ),
+      )
+    }),
+  ),
+)
 
 const SubmitDialog: React.FC<
   PropsWithChildren<{
