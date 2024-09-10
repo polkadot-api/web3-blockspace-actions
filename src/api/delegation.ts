@@ -1,6 +1,6 @@
 import { Enum, SS58String } from "polkadot-api"
 import { polkadotApi as api, DelegatableChain, polkadotPeopleApi } from "./"
-import { MultiAddress, VotingConviction } from "@polkadot-api/descriptors"
+import { VotingConviction } from "@polkadot-api/descriptors"
 import { truncateString } from "@/utils/string"
 import { getTrackInfo } from "@/actions/delegate/ChooseTracks"
 
@@ -18,7 +18,7 @@ export const delegate = async (
   conviction: VotingConviction["type"],
   amount: bigint,
   tracks: Array<number>,
-  chain: DelegatableChain,
+  { delegate }: DelegatableChain,
 ) => {
   const tracksInfo = await getTrackInfo(from)
 
@@ -41,29 +41,12 @@ export const delegate = async (
 
       if (trackInfo.type === "Casting") {
         trackInfo.referendums.forEach((index) => {
-          txs.push(
-            api.tx.ConvictionVoting.remove_vote({
-              class: trackId,
-              index,
-            }),
-          )
+          txs.push(delegate.removeVote(trackId, index))
         })
-      } else
-        txs.push(
-          api.tx.ConvictionVoting.undelegate({
-            class: trackId,
-          }),
-        )
+      } else txs.push(delegate.undelegate(trackId))
     }
 
-    txs.push(
-      api.tx.ConvictionVoting.delegate({
-        class: trackId,
-        conviction: Enum(conviction),
-        to: MultiAddress.Id(target),
-        balance: amount,
-      }),
-    )
+    txs.push(delegate.delegate(trackId, Enum(conviction), target, amount))
   })
 
   return api.tx.Utility.batch_all({

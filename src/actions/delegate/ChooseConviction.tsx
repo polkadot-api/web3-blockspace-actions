@@ -84,34 +84,42 @@ export const conviction$: StateObservable<
       )
     }),
   ),
+  0,
 )
 
-export const convictions$ = (chain: DelegatableChain) =>
-  state(defer(() => getTimeLocks(chain)))
+export const convictions$ = state((chain: DelegatableChain) =>
+  defer(() => getTimeLocks(chain)),
+)
 
 export const ConvictionInput: React.FC = () => {
-  const { chain } = useDelegateContext()
-  const convictions = useStateObservable(convictions$(chain))
-  const conviction = useStateObservable(conviction$)
   return (
     <>
       <h2 className="mt-4 font-bold">Conviction: </h2>
-      {convictions.map((convictionLabel, idx) => (
-        <label key={idx}>
-          <input
-            onChange={(e) => {
-              onConvictionInputChanges(parseInt(e.target.value.slice(1)) as 0)
-            }}
-            checked={conviction === idx}
-            type="radio"
-            value={"x" + idx}
-            name="conviction"
-          />
-          {idx > 0
-            ? ` x${idx} voting power (${convictionLabel} lock)`
-            : " x0.1 voting power (no lock)"}
-        </label>
-      ))}
+      <Convictions />
     </>
   )
+}
+
+const Convictions: React.FC = () => {
+  const { chain } = useDelegateContext()
+
+  const conviction = useStateObservable(conviction$)
+  const convictions = useStateObservable(convictions$(chain))
+
+  return convictions.map((convictionLabel, idx) => (
+    <label key={idx}>
+      <input
+        onChange={(e) => {
+          onConvictionInputChanges(parseInt(e.target.value.slice(1)) as 0)
+        }}
+        checked={conviction === idx}
+        type="radio"
+        value={"x" + idx}
+        name="conviction"
+      />
+      {idx > 0
+        ? ` x${idx} voting power (${convictionLabel} lock)`
+        : " x0.1 voting power (no lock)"}
+    </label>
+  ))
 }

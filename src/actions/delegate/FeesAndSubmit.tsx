@@ -28,54 +28,63 @@ import { conviction$, convictionVotes } from "./ChooseConviction"
 import { amount$, maxDelegation$ } from "./ChooseAmount"
 import { parsedTrack$ } from "./ChooseTracks"
 import { useDelegateContext } from "./DelegateContext"
+import { DelegatableChain } from "@/api"
 
-const delegateTx$ = state(
-  combineLatest([
-    selectedAccount$,
-    routeDelegateAccount$,
-    conviction$.pipe(map((x) => (x === SUSPENSE ? null : x))),
-    amount$.pipe(map((x) => (x === SUSPENSE ? null : x))),
-    parsedTrack$,
-    maxDelegation$,
-  ]).pipe(
-    map(
-      ([
-        selectedAccount,
-        delegateAccount,
-        conviction,
-        amount,
-        tracks,
-        maxDelegation,
-      ]) => {
-        return !selectedAccount ||
-          !delegateAccount ||
-          conviction == null ||
-          amount == null
-          ? null
-          : ([
-              selectedAccount.address,
-              delegateAccount,
-              conviction,
-              amount,
-              tracks,
-              maxDelegation,
-            ] as const)
-      },
+const delegateTx$ = (chain: DelegatableChain) =>
+  state(
+    combineLatest([
+      selectedAccount$,
+      routeDelegateAccount$,
+      conviction$.pipe(map((x) => (x === SUSPENSE ? null : x))),
+      amount$.pipe(map((x) => (x === SUSPENSE ? null : x))),
+      parsedTrack$,
+      maxDelegation$(chain),
+    ]).pipe(
+      map(
+        ([
+          selectedAccount,
+          delegateAccount,
+          conviction,
+          amount,
+          tracks,
+          maxDelegation,
+        ]) => {
+          return !selectedAccount ||
+            !delegateAccount ||
+            conviction == null ||
+            amount == null
+            ? null
+            : ([
+                selectedAccount.address,
+                delegateAccount,
+                conviction,
+                amount,
+                tracks,
+                maxDelegation,
+              ] as const)
+        },
+      ),
+      switchMap((x) => {
+        if (x === null) return of(null)
+        const [from, target, conviction, amount, tracks, maxDelegation] = x
+        if (tracks.length === 0 || amount === 0n || amount > maxDelegation)
+          return of(null)
+
+        return concat(
+          of(null),
+          delegate(
+            from,
+            target,
+            convictionVotes[conviction],
+            amount,
+            tracks,
+            chain,
+          ),
+        )
+      }),
     ),
-    switchMap((x) => {
-      if (x === null) return of(null)
-      const [from, target, conviction, amount, tracks, maxDelegation] = x
-      if (tracks.length === 0 || amount === 0n || amount > maxDelegation)
-        return of(null)
-
-      return concat(
-        of(null),
-        delegate(from, target, convictionVotes[conviction], amount, tracks),
-      )
-    }),
-  ),
-  null,
-)
+    null,
+  )
 
 const SubmitDialog: React.FC<
   PropsWithChildren<{
@@ -163,7 +172,8 @@ const SubmitDialog: React.FC<
 }
 
 export const FeesAndSubmit: React.FC<PropsWithChildren> = ({ children }) => {
-  const txCall = useStateObservable(delegateTx$)
+  const { chain } = useDelegateContext()
+  const txCall = useStateObservable(delegateTx$(chain))
   const account = useStateObservable(selectedAccount$)!
 
   const { decimals, token } = useDelegateContext()

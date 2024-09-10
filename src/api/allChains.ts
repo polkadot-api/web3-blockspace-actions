@@ -1,6 +1,8 @@
 import { ChainDefinition, PolkadotClient, TypedApi } from "polkadot-api"
 import { ChainSpec } from "./chainspec"
 import { decodedPolkadotSpec, polkadotApi, polkadotClient } from "./polkadot"
+import { MultiAddress, VotingConviction } from "@polkadot-api/descriptors"
+
 import {
   decodedPolkadotAssetHubSpec,
   polkadotAssetHubApi,
@@ -59,10 +61,27 @@ export interface DelegationFunctions {
   getExpectedBlockTime: () => Promise<bigint>
   getVoteLockingPeriod: () => Promise<number>
   getConvictionVotes: (address: SS58String) => Promise<VotesType>
-  // getStakingAmount: (address: SS58String, at: string) => Promise<bigint>
+  getStakingAmount: (
+    address: SS58String,
+    at: string,
+  ) => Promise<bigint | undefined>
+  removeVote: (
+    trackId: number,
+    index: number,
+  ) => ReturnType<typeof polkadotApi.tx.ConvictionVoting.remove_vote>
+  undelegate: (
+    trackId: number,
+  ) => ReturnType<typeof polkadotApi.tx.ConvictionVoting.undelegate>
+  delegate: (
+    trackId: number,
+    conviction: VotingConviction,
+    target: SS58String,
+    amount: bigint,
+  ) => ReturnType<typeof polkadotApi.tx.ConvictionVoting.delegate>
 }
 
 export interface Chain<T extends ChainDefinition> {
+  id: ChainId
   chainSpec: Promise<ChainSpec>
   nativeToken: SupportedTokens
   supportedTokens: SupportedTokens[]
@@ -93,6 +112,7 @@ export type ChainId =
 
 export const allChains = {
   polkadot: {
+    id: "polkadot",
     nativeToken: "DOT",
     supportedTokens: [],
     getSystemAccount: polkadotApi.query.System.Account.getValue,
@@ -108,9 +128,35 @@ export const allChains = {
         polkadotApi.constants.ConvictionVoting.VoteLockingPeriod(),
       getConvictionVotes: (address: SS58String) =>
         polkadotApi.query.ConvictionVoting.VotingFor.getEntries(address),
+      getStakingAmount: (address: SS58String, at: string = "best") =>
+        polkadotApi.query.Staking.Ledger.getValue(address, { at }).then(
+          (res) => res?.active,
+        ),
+      removeVote: (trackId: number, index: number) =>
+        polkadotApi.tx.ConvictionVoting.remove_vote({
+          class: trackId,
+          index,
+        }),
+      undelegate: (trackId: number) =>
+        polkadotApi.tx.ConvictionVoting.undelegate({
+          class: trackId,
+        }),
+      delegate: (
+        trackId: number,
+        conviction: VotingConviction,
+        target: SS58String,
+        amount: bigint,
+      ) =>
+        polkadotApi.tx.ConvictionVoting.delegate({
+          class: trackId,
+          conviction: conviction,
+          to: MultiAddress.Id(target),
+          balance: amount,
+        }),
     },
   },
   polkadotAssetHub: {
+    id: "polkadotAssetHub",
     nativeToken: "DOT",
     supportedTokens: ["USDC", "USDT"],
     getSystemAccount: polkadotAssetHubApi.query.System.Account.getValue,
@@ -128,6 +174,7 @@ export const allChains = {
     blockExplorer: "https://assethub-polkadot.subscan.io/",
   },
   polkadotBridgeHub: {
+    id: "polkadotBridgeHub",
     nativeToken: "DOT",
     supportedTokens: [],
     getSystemAccount: polkadotBridgeHubApi.query.System.Account.getValue,
@@ -138,6 +185,7 @@ export const allChains = {
     blockExplorer: "https://bridgehub-polkadot.subscan.io/",
   },
   polkadotCollectives: {
+    id: "polkadotCollectives",
     nativeToken: "DOT",
     supportedTokens: [],
     getSystemAccount: polkadotCollectivesApi.query.System.Account.getValue,
@@ -148,6 +196,7 @@ export const allChains = {
     blockExplorer: "https://collectives-polkadot.subscan.io/",
   },
   polkadotPeople: {
+    id: "polkadotPeople",
     nativeToken: "DOT",
     supportedTokens: [],
     getSystemAccount: polkadotPeopleApi.query.System.Account.getValue,
@@ -158,6 +207,7 @@ export const allChains = {
     blockExplorer: "https://people-polkadot.subscan.io/",
   },
   rococo: {
+    id: "rococo",
     nativeToken: "ROC",
     supportedTokens: [],
     getSystemAccount: rococoApi.query.System.Account.getValue,
@@ -168,6 +218,7 @@ export const allChains = {
     blockExplorer: "https://rococo.subscan.io/",
   },
   rococoAssetHub: {
+    id: "rococoAssetHub",
     nativeToken: "ROC",
     supportedTokens: ["WND"],
     getSystemAccount: rococoAssetHubApi.query.System.Account.getValue,
@@ -178,6 +229,7 @@ export const allChains = {
     blockExplorer: "https://assethub-rococo.subscan.io/",
   },
   westend: {
+    id: "westend",
     nativeToken: "WND",
     supportedTokens: [],
     getSystemAccount: westendApi.query.System.Account.getValue,
@@ -188,6 +240,7 @@ export const allChains = {
     blockExplorer: "https://westend.stg.subscan.io/",
   },
   westendAssetHub: {
+    id: "westendAssetHub",
     nativeToken: "WND",
     supportedTokens: ["ROC"],
     getSystemAccount: westendAssetHubApi.query.System.Account.getValue,
@@ -198,6 +251,7 @@ export const allChains = {
     blockExplorer: "https://assethub-westend.subscan.io/",
   },
   westendBridgeHub: {
+    id: "westendBridgeHub",
     nativeToken: "WND",
     supportedTokens: [],
     getSystemAccount: westendBridgeHubApi.query.System.Account.getValue,
@@ -208,6 +262,7 @@ export const allChains = {
     blockExplorer: "https://bridgehub-westend.subscan.io/",
   },
   kusama: {
+    id: "kusama",
     nativeToken: "KSM",
     supportedTokens: [],
     getSystemAccount: kusamaApi.query.System.Account.getValue,
@@ -222,6 +277,31 @@ export const allChains = {
         kusamaApi.constants.ConvictionVoting.VoteLockingPeriod(),
       getConvictionVotes: (address: SS58String) =>
         kusamaApi.query.ConvictionVoting.VotingFor.getEntries(address),
+      getStakingAmount: (address: SS58String, at: string = "best") =>
+        kusamaApi.query.Staking.Ledger.getValue(address, { at }).then(
+          (res) => res?.active,
+        ),
+      removeVote: (trackId: number, index: number) =>
+        kusamaApi.tx.ConvictionVoting.remove_vote({
+          class: trackId,
+          index,
+        }),
+      undelegate: (trackId: number) =>
+        kusamaApi.tx.ConvictionVoting.undelegate({
+          class: trackId,
+        }),
+      delegate: (
+        trackId: number,
+        conviction: VotingConviction,
+        target: SS58String,
+        amount: bigint,
+      ) =>
+        kusamaApi.tx.ConvictionVoting.delegate({
+          class: trackId,
+          conviction: conviction,
+          to: MultiAddress.Id(target),
+          balance: amount,
+        }),
     },
   },
 } satisfies Record<ChainId, Chain<ChainDefinition>>
@@ -232,9 +312,4 @@ export type DelegatableChain = Chain<ChainDefinition> & {
   delegate: DelegationFunctions
 }
 
-export const listChains = Object.entries(allChains)
-  .map(([key, value]) => ({
-    id: key,
-    ...value,
-  }))
-  .sort()
+export const listChains: Array<Chain<any>> = Object.values(allChains).sort()

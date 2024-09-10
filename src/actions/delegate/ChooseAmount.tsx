@@ -13,11 +13,6 @@ import { Button } from "@/components/ui/button"
 import { formatCurrencyWithSymbol } from "@/utils/format-currency"
 import { polkadotApi, Chain } from "@/api"
 
-export const getMaxDelegation = async (from: SS58String, chain: Chain<any>) => {
-  const { data: account } = await chain.getSystemAccount(from)
-  return account.free + account.reserved
-}
-
 export const getOptimalAmount = async (
   account: SS58String,
   at: string = "best",
@@ -30,12 +25,17 @@ export const optimalAmount$ = state((account: SS58String) =>
   from(getOptimalAmount(account)),
 )
 
-export const maxDelegation$ = (chain: Chain<any>) =>
-  selectedAccount$.pipeState(
+export const maxDelegation$ = state((chain: Chain<any>) =>
+  selectedAccount$.pipe(
     switchMap((account) =>
-      account ? getMaxDelegation(account.address, chain) : EMPTY,
+      account
+        ? from(chain.getSystemAccount(account.address)).pipe(
+            map(({ data }) => data.free + data.reserved),
+          )
+        : EMPTY,
     ),
-  )
+  ),
+)
 
 export const amount$ = state(
   combineLatest([routeChain$, routeDelegateAccount$, selectedAccount$]).pipe(
@@ -53,11 +53,10 @@ export const amount$ = state(
 )
 
 export const AmountInput: React.FC = () => {
-  const { chain } = useDelegateContext()
+  const { chain, decimals, token } = useDelegateContext()
   const amount = useStateObservable(amount$)
   const freeBalance = useStateObservable(maxDelegation$(chain))
 
-  const { decimals, token } = useDelegateContext()
   return (
     <>
       <h2 className="font-bold">Amount to delegate:</h2>

@@ -1,20 +1,19 @@
 import clsx from "clsx"
+import { PropsWithChildren, useEffect } from "react"
 import { combineLatest, switchMap, materialize, scan, of, map } from "rxjs"
 import { useStateObservable, state } from "@react-rxjs/core"
 import { createSignal } from "@react-rxjs/utils"
-
-// Todo: duplicate Chain type in api and in balances
-import { findBalances$, Chain } from "@/services/balances"
-import { SupportedTokens } from "@/api/allTokens"
-import { selectedAccount$ } from "@/services/accounts"
-import { token$, recipientChainId$, transferAmount$ } from "./inputs"
-import { formatCurrencyWithSymbol } from "@/utils/format-currency"
-import { Fee } from "./fee"
-import { isSupportedToken } from "@/api/allTokens"
-import { findRoute } from "./transfers"
-import { ChainId } from "@/api"
-import { PropsWithChildren, useEffect } from "react"
 import { CheckCircleIcon } from "lucide-react"
+
+import { ChainId, Chain } from "@/api"
+import { SupportedTokens, isSupportedToken } from "@/api/allTokens"
+import { selectedAccount$ } from "@/services/accounts"
+import { findBalances$ } from "@/services/balances"
+import { formatCurrencyWithSymbol } from "@/utils/format-currency"
+import { token$, recipientChainId$, transferAmount$ } from "./inputs"
+import { Fee } from "./fee"
+import { findRoute } from "./transfers"
+import { ChainDefinition } from "polkadot-api"
 
 export const balances$ = state(
   combineLatest([token$, selectedAccount$, recipientChainId$]).pipe(
@@ -43,7 +42,7 @@ export const balances$ = state(
           null as
             | {
                 transferable: bigint
-                chain: Chain
+                chain: Chain<ChainDefinition>
               }[]
             | null,
         ),
