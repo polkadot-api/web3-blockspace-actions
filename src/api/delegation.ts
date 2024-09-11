@@ -18,7 +18,7 @@ export const delegate = async (
   conviction: VotingConviction["type"],
   amount: bigint,
   tracks: Array<number>,
-  { delegate, api }: DelegatableChain,
+  { delegate }: DelegatableChain,
 ) => {
   const tracksInfo = await getTrackInfo(from)
 

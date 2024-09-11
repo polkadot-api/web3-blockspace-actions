@@ -1,4 +1,3 @@
-import { TransactionStatus, transferStatus$ } from "./submit"
 import { ChainId } from "@/api"
 import { truncateString } from "@/utils/string"
 import { allTokens, SupportedTokens } from "@/api/allTokens"
@@ -10,6 +9,7 @@ import { useStateObservable } from "@react-rxjs/core"
 import { selectedAccount$ } from "@/services/accounts"
 import { transferAmount$, recipient$, token$ } from "./inputs"
 import { senderChainId$ } from "./select-chain"
+import { TransactionStatus, transferStatus$ } from "./submit-tx"
 
 export default function SendSummary() {
   const transferAmount = useStateObservable(transferAmount$)
@@ -19,11 +19,14 @@ export default function SendSummary() {
   const from = useStateObservable(selectedAccount$)
   const chainId = useStateObservable(senderChainId$)
 
+  const txHash = transferStatus?.txHash
+  const ok = transferStatus?.ok
+
   const isFinalized =
     transferStatus &&
     transferStatus.status === TransactionStatus.Finalized &&
-    transferStatus.ok &&
-    "txHash" in transferStatus
+    !!ok &&
+    !!txHash
 
   if (!isFinalized || !token || !from || !to || !chainId) return null
 
@@ -53,7 +56,7 @@ export default function SendSummary() {
             <a
               className="underline text-pink"
               target="_blank"
-              href={transactionUrl(chainId, transferStatus.txHash)}
+              href={transactionUrl(chainId, transferStatus.txHash!)}
             >
               {truncateString(transferStatus.txHash!, 8)}
             </a>

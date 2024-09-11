@@ -50,6 +50,7 @@ const createChainMap = <T>(createValue: () => T): Record<ChainId, T> => ({
   westend: createValue(),
   westendAssetHub: createValue(),
   westendBridgeHub: createValue(),
+  kusama: createValue(),
 })
 
 export const predefinedTransfers: PredefinedTransfers = createChainMap(() =>
