@@ -5,12 +5,17 @@ import {
   polkadotBridgeHubApi,
   polkadotCollectivesApi,
   polkadotPeopleApi,
+  rococoApi,
+  rococoAssetHubApi,
+  westendApi,
+  westendAssetHubApi,
+  westendBridgeHubApi,
+  kusamaApi,
+  kusamaAssetHubApi,
+  kusamaBridgeHubApi,
+  kusamaPeopleApi,
 } from "@/api"
-import { rococoApi } from "@/api/rococo"
-import { rococoAssetHubApi } from "@/api/rococoAssetHub"
-import { westendApi } from "@/api/westend"
-import { westendAssetHubApi } from "@/api/westendAssetHub"
-import { westendBridgeHubApi } from "@/api/westendBridgeHub"
+
 import { assetHubTokenIds } from "@/services/balances"
 import { SupportedTokens } from "@/api/allTokens"
 import {
@@ -51,6 +56,9 @@ const createChainMap = <T>(createValue: () => T): Record<ChainId, T> => ({
   westendAssetHub: createValue(),
   westendBridgeHub: createValue(),
   kusama: createValue(),
+  kusamaAssetHub: createValue(),
+  kusamaBridgeHub: createValue(),
+  kusamaPeople: createValue(),
 })
 
 export const predefinedTransfers: PredefinedTransfers = createChainMap(() =>
@@ -257,6 +265,34 @@ const chains: RelayChain[] = [
       },
     ],
   },
+  {
+    id: "kusama",
+    nativeToken: "KSM",
+    transfer: kusamaApi.tx.Balances.transfer_keep_alive,
+    teleport: kusamaApi.tx.XcmPallet.teleport_assets,
+    parachains: [
+      {
+        id: "kusamaAssetHub",
+        parachainId: 1000,
+        transfer: kusamaAssetHubApi.tx.Balances.transfer_keep_alive,
+        teleport: kusamaAssetHubApi.tx.PolkadotXcm.teleport_assets,
+        assets: [{ token: "USDT", id: assetHubTokenIds.USDT }],
+        transferAsset: kusamaAssetHubApi.tx.Assets.transfer_keep_alive,
+      },
+      {
+        id: "kusamaBridgeHub",
+        parachainId: 1002,
+        transfer: kusamaBridgeHubApi.tx.Balances.transfer_keep_alive,
+        teleport: kusamaBridgeHubApi.tx.PolkadotXcm.teleport_assets,
+      },
+      {
+        id: "kusamaPeople",
+        parachainId: 1004,
+        transfer: kusamaPeopleApi.tx.Balances.transfer_keep_alive,
+        teleport: kusamaPeopleApi.tx.PolkadotXcm.teleport_assets,
+      },
+    ],
+  },
 ]
 
 const nativeTokenTransfer =
@@ -277,12 +313,13 @@ const nativeAsset = (parents: number, amount: bigint) =>
 const destToBeneficiary = (dest: string) =>
   XcmVersionedLocation.V4({
     parents: 0,
-    interior: Enum("X1", [
+    interior: Enum(
+      "X1",
       XcmV3Junction.AccountId32({
         id: Binary.fromBytes(encodeAccount(dest)),
         network: undefined,
       }),
-    ]),
+    ),
   })
 
 const encodeAccount = AccountId().enc
@@ -294,7 +331,7 @@ const nativeTokenToParachain =
       assets: nativeAsset(parents, value),
       dest: XcmVersionedLocation.V4({
         parents,
-        interior: Enum("X1", [XcmV3Junction.Parachain(parachain)]),
+        interior: Enum("X1", XcmV3Junction.Parachain(parachain)),
       }),
       beneficiary: destToBeneficiary(dest),
       fee_asset_item: 0,

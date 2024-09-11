@@ -33,7 +33,7 @@ const getBalance = async (
   if (token === chain.nativeToken) {
     const [account, ed] = await Promise.all([
       chain.getSystemAccount(address),
-      chain.getED(),
+      chain.api.constants.Balances.ExistentialDeposit() as Promise<bigint>,
     ])
     return {
       transferable: getTransferableBalance(account, ed),

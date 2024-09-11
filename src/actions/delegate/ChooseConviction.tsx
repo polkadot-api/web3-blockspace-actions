@@ -31,8 +31,8 @@ export const getTimeLocks = async (
   chain: DelegatableChain,
 ): Promise<string[]> => {
   const [blockTimeSeconds, lockedBlocks] = await Promise.all([
-    chain.delegate.getExpectedBlockTime(),
-    chain.delegate.getVoteLockingPeriod(),
+    chain.api.constants.Babe.ExpectedBlockTime() as Promise<bigint>,
+    chain.api.constants.ConvictionVoting.VoteLockingPeriod() as Promise<number>,
   ]).then(([milis, locked]) => [Number(milis / 1000n), locked])
 
   return Array(7)

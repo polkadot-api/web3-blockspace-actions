@@ -45,6 +45,18 @@
     "kusama": {
       "chain": "ksmcc3",
       "metadata": ".papi/metadata/kusama.scale"
+    },
+    "kusamaBridgeHub": {
+      "chain": "ksmcc3_bridge_hub",
+      "metadata": ".papi/metadata/kusamaBridgeHub.scale"
+    },
+    "kusamaPeople": {
+      "chain": "ksmcc3_people",
+      "metadata": ".papi/metadata/kusamaPeople.scale"
+    },
+    "kusamaAssetHub": {
+      "chain": "ksmcc3_asset_hub",
+      "metadata": ".papi/metadata/kusamaAssetHub.scale"
     }
   }
 }
