@@ -13,7 +13,7 @@ import { InvalidInputs, inputErrors$ } from "./inputs.tsx"
 import { senderChainId$ } from "./select-chain.tsx"
 import { ArrowRight } from "lucide-react"
 import { allTokens } from "@/api/allTokens.ts"
-import Submit, { transferStatus$, TransactionStatus } from "./submit.tsx"
+import Submit, { transferStatus$, TransactionStatus } from "./submit-tx.tsx"
 import {
   recipient$,
   recipientChainData$,
