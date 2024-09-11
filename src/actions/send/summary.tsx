@@ -20,11 +20,12 @@ export default function SendSummary() {
   const chainId = useStateObservable(senderChainId$)
 
   const txHash = transferStatus?.txHash
+  const ok = transferStatus?.ok
 
   const isFinalized =
     transferStatus &&
     transferStatus.status === TransactionStatus.Finalized &&
-    transferStatus.ok &&
+    !!ok &&
     !!txHash
 
   if (!isFinalized || !token || !from || !to || !chainId) return null
