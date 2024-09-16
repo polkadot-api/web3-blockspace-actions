@@ -23,6 +23,7 @@ import {
   polkadotPeopleApi,
   polkadotPeopleClient,
 } from "./polkadotPeople"
+
 import { decodedRococoSpec, rococoApi, rococoClient } from "./rococo"
 import {
   decodedRococoAssetHubSpec,
@@ -42,6 +43,22 @@ import {
 } from "./westendBridgeHub"
 import { SupportedTokens } from "./allTokens"
 import { decodedKusamaSpec, kusamaApi, kusamaClient } from "./kusama"
+import {
+  decodedKusamaAssetHubSpec,
+  kusamaAssetHubApi,
+  kusamaAssetHubClient,
+} from "./kusamaAssetHub"
+import {
+  decodedKusamaBridgeHubSpec,
+  kusamaBridgeHubApi,
+  kusamaBridgeHubClient,
+} from "./kusamaBridgeHub"
+import {
+  decodedKusamaPeopleSpec,
+  kusamaPeopleApi,
+  kusamaPeopleClient,
+} from "./kusamaPeople"
+
 import { SS58String } from "polkadot-api"
 
 export const assetHubTokenIds = {
@@ -58,8 +75,6 @@ type VotesType = Awaited<
 >
 
 export interface DelegationFunctions {
-  getExpectedBlockTime: () => Promise<bigint>
-  getVoteLockingPeriod: () => Promise<number>
   getConvictionVotes: (address: SS58String) => Promise<VotesType>
   getStakingAmount: (
     address: SS58String,
@@ -86,7 +101,6 @@ export interface Chain<T extends ChainDefinition> {
   nativeToken: SupportedTokens
   supportedTokens: SupportedTokens[]
   getSystemAccount: (address: string) => GetAccountResult
-  getED: () => Promise<bigint>
   getAssetBalance?: (
     asset: "USDT" | "USDC",
     address: string,
@@ -109,6 +123,9 @@ export type ChainId =
   | "westendAssetHub"
   | "westendBridgeHub"
   | "kusama"
+  | "kusamaAssetHub"
+  | "kusamaBridgeHub"
+  | "kusamaPeople"
 
 export const allChains = {
   polkadot: {
@@ -116,16 +133,11 @@ export const allChains = {
     nativeToken: "DOT",
     supportedTokens: [],
     getSystemAccount: polkadotApi.query.System.Account.getValue,
-    getED: polkadotApi.constants.Balances.ExistentialDeposit,
     chainSpec: decodedPolkadotSpec,
     api: polkadotApi,
     client: polkadotClient,
     blockExplorer: "https://polkadot.subscan.io/",
     delegate: {
-      getExpectedBlockTime: () =>
-        polkadotApi.constants.Babe.ExpectedBlockTime(),
-      getVoteLockingPeriod: () =>
-        polkadotApi.constants.ConvictionVoting.VoteLockingPeriod(),
       getConvictionVotes: (address: SS58String) =>
         polkadotApi.query.ConvictionVoting.VotingFor.getEntries(address),
       getStakingAmount: (address: SS58String, at: string = "best") =>
@@ -160,7 +172,6 @@ export const allChains = {
     nativeToken: "DOT",
     supportedTokens: ["USDC", "USDT"],
     getSystemAccount: polkadotAssetHubApi.query.System.Account.getValue,
-    getED: polkadotAssetHubApi.constants.Balances.ExistentialDeposit,
     getAssetBalance: async (asset: "USDC" | "USDT", addr: SS58String) => {
       const res = await polkadotAssetHubApi.query.Assets.Account.getValue(
         assetHubTokenIds[asset],
@@ -178,7 +189,6 @@ export const allChains = {
     nativeToken: "DOT",
     supportedTokens: [],
     getSystemAccount: polkadotBridgeHubApi.query.System.Account.getValue,
-    getED: polkadotBridgeHubApi.constants.Balances.ExistentialDeposit,
     chainSpec: decodedPolkadotBridgeHubSpec,
     api: polkadotBridgeHubApi,
     client: polkadotBridgeHubClient,
@@ -189,7 +199,6 @@ export const allChains = {
     nativeToken: "DOT",
     supportedTokens: [],
     getSystemAccount: polkadotCollectivesApi.query.System.Account.getValue,
-    getED: polkadotCollectivesApi.constants.Balances.ExistentialDeposit,
     chainSpec: decodedPolkadotCollectivesSpec,
     api: polkadotCollectivesApi,
     client: polkadotCollectivesClient,
@@ -200,7 +209,6 @@ export const allChains = {
     nativeToken: "DOT",
     supportedTokens: [],
     getSystemAccount: polkadotPeopleApi.query.System.Account.getValue,
-    getED: polkadotPeopleApi.constants.Balances.ExistentialDeposit,
     chainSpec: decodedPolkadotPeopleSpec,
     api: polkadotPeopleApi,
     client: polkadotPeopleClient,
@@ -211,7 +219,6 @@ export const allChains = {
     nativeToken: "ROC",
     supportedTokens: [],
     getSystemAccount: rococoApi.query.System.Account.getValue,
-    getED: rococoApi.constants.Balances.ExistentialDeposit,
     chainSpec: decodedRococoSpec,
     api: rococoApi,
     client: rococoClient,
@@ -222,7 +229,6 @@ export const allChains = {
     nativeToken: "ROC",
     supportedTokens: ["WND"],
     getSystemAccount: rococoAssetHubApi.query.System.Account.getValue,
-    getED: rococoAssetHubApi.constants.Balances.ExistentialDeposit,
     chainSpec: decodedRococoAssetHubSpec,
     api: rococoAssetHubApi,
     client: rococoAssetHubClient,
@@ -233,7 +239,6 @@ export const allChains = {
     nativeToken: "WND",
     supportedTokens: [],
     getSystemAccount: westendApi.query.System.Account.getValue,
-    getED: westendApi.constants.Balances.ExistentialDeposit,
     chainSpec: decodedWestendSpec,
     api: westendApi,
     client: westendClient,
@@ -244,7 +249,6 @@ export const allChains = {
     nativeToken: "WND",
     supportedTokens: ["ROC"],
     getSystemAccount: westendAssetHubApi.query.System.Account.getValue,
-    getED: westendAssetHubApi.constants.Balances.ExistentialDeposit,
     chainSpec: decodedWestendAssetHubSpec,
     api: westendAssetHubApi,
     client: westendAssetHubClient,
@@ -255,7 +259,6 @@ export const allChains = {
     nativeToken: "WND",
     supportedTokens: [],
     getSystemAccount: westendBridgeHubApi.query.System.Account.getValue,
-    getED: westendBridgeHubApi.constants.Balances.ExistentialDeposit,
     chainSpec: decodedWestendBridgeHubSpec,
     api: westendBridgeHubApi,
     client: westendBridgeHubClient,
@@ -266,15 +269,11 @@ export const allChains = {
     nativeToken: "KSM",
     supportedTokens: [],
     getSystemAccount: kusamaApi.query.System.Account.getValue,
-    getED: kusamaApi.constants.Balances.ExistentialDeposit,
     chainSpec: decodedKusamaSpec,
     api: kusamaApi,
     client: kusamaClient,
     blockExplorer: "https://kusama.subscan.io/",
     delegate: {
-      getExpectedBlockTime: () => kusamaApi.constants.Babe.ExpectedBlockTime(),
-      getVoteLockingPeriod: () =>
-        kusamaApi.constants.ConvictionVoting.VoteLockingPeriod(),
       getConvictionVotes: (address: SS58String) =>
         kusamaApi.query.ConvictionVoting.VotingFor.getEntries(address),
       getStakingAmount: (address: SS58String, at: string = "best") =>
@@ -303,6 +302,43 @@ export const allChains = {
           balance: amount,
         }),
     },
+  },
+  kusamaAssetHub: {
+    id: "kusamaAssetHub",
+    nativeToken: "DOT",
+    supportedTokens: ["USDC", "USDT"],
+    getSystemAccount: kusamaAssetHubApi.query.System.Account.getValue,
+    getAssetBalance: async (asset: "USDC" | "USDT", addr: SS58String) => {
+      const res = await kusamaAssetHubApi.query.Assets.Account.getValue(
+        assetHubTokenIds[asset],
+        addr,
+      )
+      return res?.status.type !== "Liquid" ? null : res
+    },
+    chainSpec: decodedKusamaAssetHubSpec,
+    api: kusamaAssetHubApi,
+    client: kusamaAssetHubClient,
+    blockExplorer: "https://assethub-kusama.subscan.io/",
+  },
+  kusamaBridgeHub: {
+    id: "kusamaBridgeHub",
+    nativeToken: "DOT",
+    supportedTokens: [],
+    getSystemAccount: kusamaBridgeHubApi.query.System.Account.getValue,
+    chainSpec: decodedKusamaBridgeHubSpec,
+    api: kusamaBridgeHubApi,
+    client: kusamaBridgeHubClient,
+    blockExplorer: "https://bridgehub-kusama.subscan.io/",
+  },
+  kusamaPeople: {
+    id: "kusamaPeople",
+    nativeToken: "DOT",
+    supportedTokens: [],
+    getSystemAccount: kusamaPeopleApi.query.System.Account.getValue,
+    chainSpec: decodedKusamaPeopleSpec,
+    api: kusamaPeopleApi,
+    client: kusamaPeopleClient,
+    blockExplorer: "https://people-kusama.subscan.io/",
   },
 } satisfies Record<ChainId, Chain<ChainDefinition>>
 

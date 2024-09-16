@@ -9,7 +9,10 @@ export const getAddressName = async (addr: string): Promise<string> => {
   const id = await polkadotPeopleApi.query.Identity.IdentityOf.getValue(addr)
   if (id == null || id[0].info.display.value == null)
     return truncateString(addr, 12)
-  return id[0].info.display.value.asText()
+
+  return typeof id[0].info.display.value === "number"
+    ? id[0].info.display.value.toString()
+    : id[0].info.display.value.asText()
 }
 
 export const delegate = async (
